@@ -43,7 +43,7 @@
     "zod": "3.25.67"
   },
   "devDependencies": {
-    "wrangler": "4.21.x"
+    "wrangler": "^4.34.0"
   },
   "scripts": {
     "astro": "astro",
