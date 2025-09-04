@@ -30,3 +30,7 @@ pnpm-debug.log*
 
 # Wrangler
 .wrangler/
+
+
+# Wrangler
+.wrangler/
