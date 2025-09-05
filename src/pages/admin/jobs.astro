@@ -1,0 +1,105 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listJobs } from '../../lib/api';
+import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
+import { Select } from '../../components/ui/select';
+
+const url = new URL(Astro.request.url);
+const limit = Number(url.searchParams.get('limit') || 25);
+const offset = Number(url.searchParams.get('offset') || 0);
+const status = (url.searchParams.get('status') || '') as 'open' | 'closed' | '';
+const source = (url.searchParams.get('source') || '') as 'SCRAPED' | 'EMAIL' | 'MANUAL' | '';
+
+const jobs = await listJobs({
+  limit,
+  offset,
+  status: status || undefined,
+  source: source || undefined
+});
+
+function qs(next: Record<string, string | number | undefined>) {
+  const u = new URL(Astro.request.url);
+  Object.entries(next).forEach(([k, v]) => {
+    if (v === undefined || v === '') u.searchParams.delete(k);
+    else u.searchParams.set(k, String(v));
+  });
+  return `${u.pathname}?${u.searchParams.toString()}`;
+}
+---
+<AdminLayout>
+  <form method="get" class="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
+    <div>
+      <label class="mb-1 block text-xs text-neutral-600">Status</label>
+      <Select
+        client:only="react"
+        value={status}
+        onChange={(v) => (location.href = qs({ status: v, offset: 0 }))}
+        options={[
+          { label: 'All', value: '' },
+          { label: 'Open', value: 'open' },
+          { label: 'Closed', value: 'closed' }
+        ]} />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs text-neutral-600">Source</label>
+      <Select
+        client:only="react"
+        value={source}
+        onChange={(v) => (location.href = qs({ source: v, offset: 0 }))}
+        options={[
+          { label: 'All', value: '' },
+          { label: 'Scraped', value: 'SCRAPED' },
+          { label: 'Email', value: 'EMAIL' },
+          { label: 'Manual', value: 'MANUAL' }
+        ]} />
+    </div>
+    <div class="sm:col-span-2">
+      <label class="mb-1 block text-xs text-neutral-600">Search (reserved)</label>
+      <Input placeholder="Title, company…" disabled />
+    </div>
+  </form>
+
+  <div class="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+    <table class="w-full text-sm">
+      <thead class="bg-neutral-50 text-neutral-600">
+        <tr>
+          <th class="px-3 py-2 text-left">Title</th>
+          <th class="px-3 py-2 text-left">Company</th>
+          <th class="px-3 py-2 text-left">Location</th>
+          <th class="px-3 py-2 text-left">Employment</th>
+          <th class="px-3 py-2 text-left">Status</th>
+          <th class="px-3 py-2 text-left">Source</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {jobs.map((j) => (
+          <tr class="hover:bg-neutral-50">
+            <td class="px-3 py-2">
+              <a class="font-medium hover:underline" href={`/admin/jobs/${encodeURIComponent(j.id)}`}>{j.title || 'Untitled'}</a>
+            </td>
+            <td class="px-3 py-2">{j.company || '—'}</td>
+            <td class="px-3 py-2">{j.location || '—'}</td>
+            <td class="px-3 py-2">{j.employment_type || '—'}</td>
+            <td class="px-3 py-2">{j.status || '—'}</td>
+            <td class="px-3 py-2">
+              {j.source
+                ? <Badge client:only="react" variant={j.source === 'EMAIL' ? 'accent' : j.source === 'MANUAL' ? 'secondary' : 'info'}>{j.source}</Badge>
+                : '—'}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-3 flex items-center justify-between">
+    <div class="text-xs text-neutral-500">Showing {jobs.length} rows</div>
+    <div class="flex gap-2">
+      <a class="rounded border px-2 py-1 text-sm hover:bg-neutral-50"
+         href={qs({ offset: Math.max(0, offset - limit) })}>Previous</a>
+      <a class="rounded border px-2 py-1 text-sm hover:bg-neutral-50"
+         href={qs({ offset: offset + limit })}>Next</a>
+    </div>
+  </div>
+</AdminLayout>
