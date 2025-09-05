@@ -1,112 +1,77 @@
-import qs from 'qs';
-import type { paths } from './types/openapi';
+// Minimal typed client for Milestone 1. No external deps.
 
-export const API_BASE = 'https://9to5-scout.hacolby.workers.dev';
+import type {
+  Job,
+  MonitoringStatus,
+  JobTrackingPayload
+} from './types/api';
+
+const API_BASE = 'https://9to5-scout.hacolby.workers.dev';
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'content-type': 'application/json', ...(init?.headers || {}) },
     ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers || {})
+    }
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || res.statusText);
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${res.statusText} :: ${text}`.slice(0, 2048));
   }
-  if (res.status === 204) {
-    return undefined as T;
-  }
-  return (await res.json()) as T;
+  // some endpoints may return empty
+  if (res.status === 204) return undefined as unknown as T;
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return (await res.json()) as T;
+  return (await res.text()) as unknown as T;
 }
 
-// Typed helpers for key endpoints
-
-export type ListJobsParams = paths['/api/jobs']['get']['parameters']['query'];
-export type Job = paths['/api/jobs']['get']['responses']['200']['content']['application/json'][number];
-export async function listJobs(params?: ListJobsParams) {
-  const query = params ? `?${qs.stringify(params)}` : '';
-  return http<paths['/api/jobs']['get']['responses']['200']['content']['application/json']>(`/api/jobs${query}`);
+export async function getMonitoringStatus(): Promise<MonitoringStatus> {
+  return http<MonitoringStatus>('/api/monitoring/status');
 }
 
-export type GetJobResponse = paths['/api/jobs/{id}']['get']['responses']['200']['content']['application/json'];
-export async function getJob(id: string) {
-  return http<GetJobResponse>(`/api/jobs/${id}`);
+export interface ListJobsParams {
+  limit?: number;
+  offset?: number;
+  status?: 'open' | 'closed';
+  source?: 'SCRAPED' | 'EMAIL' | 'MANUAL';
+}
+export async function listJobs(params: ListJobsParams = {}): Promise<Job[]> {
+  const qs = new URLSearchParams();
+  if (params.limit != null) qs.set('limit', String(params.limit));
+  if (params.offset != null) qs.set('offset', String(params.offset));
+  if (params.status) qs.set('status', params.status);
+  if (params.source) qs.set('source', params.source);
+  const q = qs.toString();
+  return http<Job[]>(`/api/jobs${q ? `?${q}` : ''}`);
 }
 
-export type GetJobTrackingResponse = paths['/api/jobs/{id}/tracking']['get']['responses']['200']['content']['application/json'];
-export async function getJobTracking(id: string) {
-  return http<GetJobTrackingResponse>(`/api/jobs/${id}/tracking`);
+export async function getJob(id: string): Promise<Job> {
+  return http<Job>(`/api/jobs/${encodeURIComponent(id)}`);
 }
 
-export type UpdateJobMonitoringBody = paths['/api/jobs/{id}/monitoring']['put']['requestBody']['content']['application/json'];
-export type UpdateJobMonitoringResponse = paths['/api/jobs/{id}/monitoring']['put']['responses']['200']['content']['application/json'];
-export async function updateJobMonitoring(id: string, body: UpdateJobMonitoringBody) {
-  return http<UpdateJobMonitoringResponse>(`/api/jobs/${id}/monitoring`, {
+export async function getJobTracking(id: string): Promise<JobTrackingPayload> {
+  return http<JobTrackingPayload>(`/api/jobs/${encodeURIComponent(id)}/tracking`);
+}
+
+export async function updateJobMonitoring(id: string, body: {
+  daily_monitoring_enabled?: boolean;
+  monitoring_frequency_hours?: number;
+}): Promise<Job> {
+  return http<Job>(`/api/jobs/${encodeURIComponent(id)}/monitoring`, {
     method: 'PUT',
-    body: JSON.stringify(body),
+    body: JSON.stringify(body)
   });
 }
 
-export type MonitoringStatusResponse = paths['/api/monitoring/status']['get']['responses']['200']['content']['application/json'];
-export async function getMonitoringStatus() {
-  return http<MonitoringStatusResponse>('/api/monitoring/status');
+// Utility
+export function fmtDateTime(ts?: string) {
+  if (!ts) return '—';
+  try {
+    const d = new Date(ts);
+    return d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+  } catch {
+    return ts;
+  }
 }
-
-export type SubmitApplicantHistoryBody = paths['/api/applicant/history']['post']['requestBody']['content']['application/json'];
-export type SubmitApplicantHistoryResponse = paths['/api/applicant/history']['post']['responses']['200']['content']['application/json'];
-export async function submitApplicantHistory(body: SubmitApplicantHistoryBody) {
-  return http<SubmitApplicantHistoryResponse>('/api/applicant/history', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export type GetApplicantHistoryResponse = paths['/api/applicant/{user_id}/history']['get']['responses']['200']['content']['application/json'];
-export async function getApplicantHistory(userId: string) {
-  return http<GetApplicantHistoryResponse>(`/api/applicant/${userId}/history`);
-}
-
-export type CoverLetterBody = paths['/api/cover-letter']['post']['requestBody']['content']['application/json'];
-export type CoverLetterResponse = paths['/api/cover-letter']['post']['responses']['200']['content']['application/json'];
-export async function createCoverLetter(body: CoverLetterBody) {
-  return http<CoverLetterResponse>('/api/cover-letter', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export type ResumeBody = paths['/api/resume']['post']['requestBody']['content']['application/json'];
-export type ResumeResponse = paths['/api/resume']['post']['responses']['200']['content']['application/json'];
-export async function createResume(body: ResumeBody) {
-  return http<ResumeResponse>('/api/resume', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-export type EmailLogsParams = paths['/api/email/logs']['get']['parameters']['query'];
-export type EmailLogsResponse = paths['/api/email/logs']['get']['responses']['200']['content']['application/json'];
-export async function getEmailLogs(params?: EmailLogsParams) {
-  const query = params ? `?${qs.stringify(params)}` : '';
-  return http<EmailLogsResponse>(`/api/email/logs${query}`);
-}
-
-export type SemanticSearchParams = paths['/api/agent/query']['get']['parameters']['query'];
-export type SemanticSearchResponse = paths['/api/agent/query']['get']['responses']['200']['content']['application/json'];
-export async function semanticJobSearch(params: SemanticSearchParams) {
-  const query = `?${qs.stringify(params)}`;
-  return http<SemanticSearchResponse>(`/api/agent/query${query}`);
-}
-
-export default {
-  listJobs,
-  getJob,
-  getJobTracking,
-  updateJobMonitoring,
-  getMonitoringStatus,
-  submitApplicantHistory,
-  getApplicantHistory,
-  createCoverLetter,
-  createResume,
-  getEmailLogs,
-  semanticJobSearch,
-};
