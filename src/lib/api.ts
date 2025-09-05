@@ -12,7 +12,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      'content-type': 'application/json',
       ...(init?.headers || {})
     }
   });
