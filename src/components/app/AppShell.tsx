@@ -21,7 +21,7 @@ export function AppShell({ children }: React.PropsWithChildren) {
         </div>
       </header>
       <div className="mx-auto grid max-w-7xl grid-cols-12 gap-4 px-4 py-4">
-        <aside className={`col-span-12 md:col-span-3 lg:col-span-2 ${open ? '' : 'hidden md:block'}`}>
+        <aside className={`col-span-12 md:col-span-3 lg:col-span-2 ${open ? '' : 'hidden'}`}>
           <nav className="rounded-lg border border-neutral-200 bg-white p-2">
             <NavLink href="/admin" label="Dashboard" />
             <NavLink href="/admin/jobs" label="Jobs" />
