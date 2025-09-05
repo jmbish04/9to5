@@ -1,227 +1,109 @@
-const safeCompare = async (a, b) => {
-  if (typeof a !== "string" || typeof b !== "string") return false;
-  const encoder = new TextEncoder();
-  const aEncoded = encoder.encode(a);
-  const bEncoded = encoder.encode(b);
-  if (aEncoded.length !== bEncoded.length) return false;
-  return await crypto.subtle.timingSafeEqual(aEncoded, bEncoded);
-};
+import qs from 'qs';
+import type { paths } from './types/openapi';
 
-export const validateApiTokenResponse = async (request, apiToken) => {
-  const successful = await validateApiToken(request, apiToken);
-  if (!successful) {
-    return Response.json({ message: "Invalid API token" }, { status: 401 });
-  }
-};
+export const API_BASE = 'https://9to5-scout.hacolby.workers.dev';
 
-export const validateApiToken = async (request, apiToken) => {
-  try {
-    if (!request?.headers?.get) {
-      console.error("Invalid request object");
-      return false;
-    }
-
-    if (!apiToken) {
-      console.error(
-        "No API token provided. Set one as an environment variable.",
-      );
-      return false;
-    }
-
-    const authHeader = request.headers.get("authorization");
-    const customTokenHeader = request.headers.get("x-api-token");
-
-    let tokenToValidate = customTokenHeader;
-
-    if (authHeader) {
-      if (authHeader.startsWith("Bearer ")) {
-        tokenToValidate = authHeader.substring(7);
-      } else if (authHeader.startsWith("Token ")) {
-        tokenToValidate = authHeader.substring(6);
-      } else {
-        tokenToValidate = authHeader;
-      }
-    }
-
-    if (!tokenToValidate || tokenToValidate.length === 0) return false;
-
-    return await safeCompare(apiToken.trim(), tokenToValidate.trim());
-  } catch (error) {
-    console.error("Error validating API token:", error);
-    return false;
-  }
-};
-
-export const getCustomers = async (baseUrl, apiToken) => {
-  const url = `${baseUrl}/api/customers`;
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-    },
+async function http<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { 'content-type': 'application/json', ...(init?.headers || {}) },
+    ...init,
   });
-  if (response.ok) {
-    const data = await response.json();
-    return {
-      customers: data.customers,
-      success: true,
-    };
-  } else {
-    console.error("Failed to fetch customers");
-    return {
-      customers: [],
-      success: false,
-    };
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || res.statusText);
   }
-};
+  return (await res.json()) as T;
+}
 
-export const getCustomer = async (id, baseUrl, apiToken) => {
-  const response = await fetch(baseUrl + "/api/customers/" + id, {
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-    },
-  });
-  if (response.ok) {
-    const data = await response.json();
-    return {
-      customer: data.customer,
-      success: true,
-    };
-  } else {
-    console.error("Failed to fetch customers");
-    return {
-      customer: null,
-      success: false,
-    };
-  }
-};
+// Typed helpers for key endpoints
 
-export const createCustomer = async (baseUrl, apiToken, customer) => {
-  const response = await fetch(baseUrl + "/api/customers", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(customer),
-  });
-  if (response.ok) {
-    const data = await response.json();
-    return {
-      customer: data.customer,
-      success: true,
-    };
-  } else {
-    console.error("Failed to create customer");
-    return {
-      customer: null,
-      success: false,
-    };
-  }
-};
+export type ListJobsParams = paths['/api/jobs']['get']['parameters']['query'];
+export type Job = paths['/api/jobs']['get']['responses']['200']['content']['application/json'][number];
+export async function listJobs(params?: ListJobsParams) {
+  const query = params ? `?${qs.stringify(params)}` : '';
+  return http<paths['/api/jobs']['get']['responses']['200']['content']['application/json']>(`/api/jobs${query}`);
+}
 
-export const createSubscription = async (baseUrl, apiToken, subscription) => {
-  const response = await fetch(baseUrl + "/api/subscriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(subscription),
-  });
-  if (response.ok) {
-    const data = await response.json();
-    return {
-      subscription: data.subscription,
-      success: true,
-    };
-  } else {
-    console.error("Failed to create subscription");
-    return {
-      subscription: null,
-      success: false,
-    };
-  }
-};
+export type GetJobResponse = paths['/api/jobs/{id}']['get']['responses']['200']['content']['application/json'];
+export async function getJob(id: string) {
+  return http<GetJobResponse>(`/api/jobs/${id}`);
+}
 
-export const getSubscriptions = async (baseUrl, apiToken) => {
-  const response = await fetch(baseUrl + "/api/subscriptions", {
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-    },
-  });
-  if (response.ok) {
-    const data = await response.json();
-    return {
-      subscriptions: data.subscriptions,
-      success: true,
-    };
-  } else {
-    console.error("Failed to fetch subscriptions");
-    return {
-      subscriptions: [],
-      success: false,
-    };
-  }
-};
+export type GetJobTrackingResponse = paths['/api/jobs/{id}/tracking']['get']['responses']['200']['content']['application/json'];
+export async function getJobTracking(id: string) {
+  return http<GetJobTrackingResponse>(`/api/jobs/${id}/tracking`);
+}
 
-export const getSubscription = async (id, baseUrl, apiToken) => {
-  const response = await fetch(baseUrl + "/api/subscriptions/" + id, {
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-    },
+export type UpdateJobMonitoringBody = paths['/api/jobs/{id}/monitoring']['put']['requestBody']['content']['application/json'];
+export type UpdateJobMonitoringResponse = paths['/api/jobs/{id}/monitoring']['put']['responses']['200']['content']['application/json'];
+export async function updateJobMonitoring(id: string, body: UpdateJobMonitoringBody) {
+  return http<UpdateJobMonitoringResponse>(`/api/jobs/${id}/monitoring`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
   });
-  if (response.ok) {
-    const data = await response.json();
-    return {
-      subscription: data.subscription,
-      success: true,
-    };
-  } else {
-    console.error("Failed to fetch subscription");
-    return {
-      subscription: null,
-      success: false,
-    };
-  }
-};
+}
 
-export const getCustomerSubscriptions = async (baseUrl, apiToken) => {
-  const response = await fetch(baseUrl + "/api/customer_subscriptions", {
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-    },
-  });
-  if (response.ok) {
-    const data = await response.json();
-    return {
-      customer_subscriptions: data.customer_subscriptions,
-      success: true,
-    };
-  } else {
-    console.error("Failed to fetch customer subscriptions");
-    return {
-      customer_subscriptions: [],
-      success: false,
-    };
-  }
-};
+export type MonitoringStatusResponse = paths['/api/monitoring/status']['get']['responses']['200']['content']['application/json'];
+export async function getMonitoringStatus() {
+  return http<MonitoringStatusResponse>('/api/monitoring/status');
+}
 
-export const runCustomerWorkflow = async (id, baseUrl, apiToken) => {
-  const response = await fetch(baseUrl + `/api/customers/${id}/workflow`, {
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-    },
-    method: "POST",
+export type SubmitApplicantHistoryBody = paths['/api/applicant/history']['post']['requestBody']['content']['application/json'];
+export type SubmitApplicantHistoryResponse = paths['/api/applicant/history']['post']['responses']['200']['content']['application/json'];
+export async function submitApplicantHistory(body: SubmitApplicantHistoryBody) {
+  return http<SubmitApplicantHistoryResponse>('/api/applicant/history', {
+    method: 'POST',
+    body: JSON.stringify(body),
   });
-  if (response.ok) {
-    const data = await response.json();
-    return {
-      success: true,
-    };
-  } else {
-    console.error("Failed to fetch customer subscriptions");
-    return {
-      success: false,
-    };
-  }
+}
+
+export type GetApplicantHistoryResponse = paths['/api/applicant/{user_id}/history']['get']['responses']['200']['content']['application/json'];
+export async function getApplicantHistory(userId: string) {
+  return http<GetApplicantHistoryResponse>(`/api/applicant/${userId}/history`);
+}
+
+export type CoverLetterBody = paths['/api/cover-letter']['post']['requestBody']['content']['application/json'];
+export type CoverLetterResponse = paths['/api/cover-letter']['post']['responses']['200']['content']['application/json'];
+export async function createCoverLetter(body: CoverLetterBody) {
+  return http<CoverLetterResponse>('/api/cover-letter', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export type ResumeBody = paths['/api/resume']['post']['requestBody']['content']['application/json'];
+export type ResumeResponse = paths['/api/resume']['post']['responses']['200']['content']['application/json'];
+export async function createResume(body: ResumeBody) {
+  return http<ResumeResponse>('/api/resume', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export type EmailLogsParams = paths['/api/email/logs']['get']['parameters']['query'];
+export type EmailLogsResponse = paths['/api/email/logs']['get']['responses']['200']['content']['application/json'];
+export async function getEmailLogs(params?: EmailLogsParams) {
+  const query = params ? `?${qs.stringify(params)}` : '';
+  return http<EmailLogsResponse>(`/api/email/logs${query}`);
+}
+
+export type SemanticSearchParams = paths['/api/agent/query']['get']['parameters']['query'];
+export type SemanticSearchResponse = paths['/api/agent/query']['get']['responses']['200']['content']['application/json'];
+export async function semanticJobSearch(params: SemanticSearchParams) {
+  const query = `?${qs.stringify(params)}`;
+  return http<SemanticSearchResponse>(`/api/agent/query${query}`);
+}
+
+export default {
+  listJobs,
+  getJob,
+  getJobTracking,
+  updateJobMonitoring,
+  getMonitoringStatus,
+  submitApplicantHistory,
+  getApplicantHistory,
+  createCoverLetter,
+  createResume,
+  getEmailLogs,
+  semanticJobSearch,
 };

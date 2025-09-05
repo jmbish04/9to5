@@ -33,16 +33,22 @@
     "astro": "5.10.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "date-fns": "^3.6.0",
     "lucide-react": "0.525.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-hook-form": "7.58.1",
+    "qs": "^6.12.1",
+    "swr": "^2.2.0",
     "tailwind-merge": "3.3.1",
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "1.0.7",
+    "zustand": "^4.5.2",
     "zod": "3.25.67"
   },
   "devDependencies": {
+    "@types/qs": "^6.9.11",
+    "openapi-typescript": "^6.7.0",
     "wrangler": "^4.34.0"
   },
   "scripts": {
@@ -58,6 +64,7 @@
     "preview": "npm run build && npm run wrangler:wrapper && wrangler dev",
     "wrangler:wrapper": "cp src/workflows/wrapper.js dist/index.js",
     "generate-types": "wrangler types",
+    "types:api": "openapi-typescript public/openapi.json -o src/lib/types/openapi.ts",
     "typecheck": "pnpm generate-types && tsc -p tsconfig.json",
     "migrate:local": "pnpm wrangler d1 migrations apply JOB_SCRAPER_DB --local",
     "migrate:remote": "pnpm wrangler d1 migrations apply JOB_SCRAPER_DB --remote"
