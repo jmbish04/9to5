@@ -12,6 +12,9 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     const text = await res.text();
     throw new Error(text || res.statusText);
   }
+  if (res.status === 204) {
+    return undefined as T;
+  }
   return (await res.json()) as T;
 }
 
