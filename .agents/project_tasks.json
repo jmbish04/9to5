@@ -1,0 +1,547 @@
+{
+  "project": "9to5-Scout Frontend (Astro + React + shadcn/ui) for Cloudflare Pages",
+  "version": "1.0.0",
+  "owner": "Justin",
+  "goals": [
+    "Ship a production-ready, typed UI for the 9to5-Scout worker at https://9to5-scout.hacolby.workers.dev",
+    "Make applicant onboarding effortless: paste text, upload Markdown/resume; the agent handles parsing",
+    "Expose job discovery + monitoring with compressed tracking timeline (stable periods + change points)",
+    "Enable human-in-the-loop prioritization (interested / not now) without losing any data capture",
+    "Be deployable on Cloudflare Pages with clean CI and minimal vendor lock gotchas"
+  ],
+  "environments": {
+    "runtime": "Cloudflare Pages (static hosting) + XHR to the Worker",
+    "access_model": "Cloudflare Access in front of the Worker; frontend sends no Authorization headers",
+    "bindings_reference": [
+      "Workers AI (text, embeddings)",
+      "Browser Rendering API (rendered DOM)",
+      "D1 (relational store)",
+      "R2 (snapshots: html/pdf/md/png)",
+      "KV (ephemeral flags, UI hints)",
+      "Vectorize (semantic search powering /api/agent/query)"
+    ]
+  },
+  "api_map": {
+    "health": "GET /api/health",
+    "openapi": "GET /openapi.json",
+    "jobs_list": "GET /api/jobs?limit&offset&status&source",
+    "job_by_id": "GET /api/jobs/{id}",
+    "job_tracking": "GET /api/jobs/{id}/tracking",
+    "job_snapshot_content": "GET /api/jobs/{id}/snapshots/{snapshotId}/content?type=html|markdown|pdf|json|screenshot",
+    "job_monitoring_update": "PUT /api/jobs/{id}/monitoring",
+    "monitoring_status": "GET /api/monitoring/status",
+    "monitoring_daily_run": "POST /api/monitoring/daily-run",
+    "monitoring_queue": "GET /api/jobs/monitoring-queue?limit",
+    "discovery_run": "POST /api/runs/discovery",
+    "monitor_run": "POST /api/runs/monitor",
+    "semantic_search": "GET /api/agent/query?q=...",
+    "cover_letter": "POST /api/cover-letter",
+    "resume": "POST /api/resume",
+    "email_logs": "GET /api/email/logs?limit",
+    "email_configs_get": "GET /api/email/configs",
+    "email_configs_put": "PUT /api/email/configs",
+    "email_insights_send": "POST /api/email/insights/send",
+    "agents_crud": "GET/POST /api/agents, GET/PUT/DELETE /api/agents/{id}",
+    "tasks_crud": "GET/POST /api/tasks, GET/PUT/DELETE /api/tasks/{id}",
+    "workflows_crud": "GET/POST /api/workflows, GET/PUT/DELETE /api/workflows/{id}",
+    "workflows_execute": "POST /api/workflows/{id}/execute",
+    "applicant_submit_history": "POST /api/applicant/history",
+    "applicant_get_history": "GET /api/applicant/{user_id}/history",
+    "applicant_job_rating": "POST /api/applicant/job-rating",
+    "applicant_job_ratings": "GET /api/applicant/{user_id}/job-ratings"
+  },
+  "common_gotchas": [
+    "Do NOT import Node-only modules (fs, path, crypto randomBytes, net, tls) in client code or Astro islands.",
+    "Cloudflare Pages serves static assets; all dynamic data must be fetched from the Worker origin via fetch.",
+    "Avoid absolute imports that assume Node resolution. Use Vite aliases configured in tsconfig/astro config.",
+    "Use ESM everywhere. No require().",
+    "CORS: prefer same-site calls (direct to workers.dev or custom domain). If adding custom domain, update API_BASE.",
+    "Do NOT bake secrets into the frontend. Cloudflare Access protects the Worker; no Authorization header needed.",
+    "R2 files may be large. For PDF/PNG, open in new tab or stream; never inline huge base64 in the DOM.",
+    "The Browser Rendering API is quota-limited; UIs should trigger runs, not render pages themselves.",
+    "D1 is transactional but lightweight; keep queries lean, index-aware; use backend pagination params.",
+    "Long lists: always paginate (limit/offset) and show loading skeletons.",
+    "Snapshot HTML: render inside a sandboxed container. For raw HTML, use a dedicated iframe-like component (CSS scoped).",
+    "Shadcn components: keep them local if CLI can’t run in CI. Match names/structure so later we can replace with CLI output.",
+    "Never block UI on AI endpoints; show progress states and allow cancel/retry.",
+    "Dates: always format in the user’s TZ (America/Los_Angeles). Use date-fns.",
+    "Persist UI filters (status/source/limit) in URL query params for deep-linking.",
+    "For interest signals (👍/👎), store UI state locally if backend endpoint doesn’t exist; feature-flag server sync later.",
+    "Use AbortController to cancel inflight fetches when filters change rapidly.",
+    "Keep bundles small: split routes, lazy-load heavy React islands (client:load where appropriate)."
+  ],
+  "epics": [
+    {
+      "id": "epic-01",
+      "title": "Foundation: Types, API client, UI Kit, Layout",
+      "success_criteria": [
+        "openapi.json checked into public/; types generated to src/lib/types/openapi.ts",
+        "Typed API client covering monitoring, jobs (list/get/tracking/updateMonitoring), applicant history submit/get",
+        "shadcn/ui (or local equivalents) present: Button, Card, Table, Dialog, Select, Input, Textarea, Badge, Skeleton",
+        "App shell with sidebar nav (Dashboard, Jobs, Applicant, Agents, Tasks, Workflows)"
+      ],
+      "tasks": [
+        {
+          "id": "task-01-01",
+          "title": "Wire OpenAPI types and typed API client",
+          "steps": [
+            "Add dev dep: openapi-typescript; script: \"types:api\" to emit src/lib/types/openapi.ts",
+            "Create src/lib/api.ts with API_BASE='https://9to5-scout.hacolby.workers.dev'",
+            "Implement http<T>(path, init) wrapper with JSON parsing and non-200 error normalization",
+            "Map endpoints by operationId; export typed fns: getMonitoringStatus, listJobs, getJob, getJobTracking, updateJobMonitoring, submitApplicantHistory, getApplicantHistory, createCoverLetter, createResume, getEmailLogs, semanticJobSearch",
+            "Add query helpers for limit/offset/status/source"
+          ],
+          "acceptance_criteria": [
+            "pnpm types:api produces no type errors",
+            "All API fns have precise request/response types from openapi.ts",
+            "Basic smoke test: GET /api/health succeeds and displays in console during dev"
+          ],
+          "gotchas": [
+            "Don’t accidentally prefix API paths with site origin; use API_BASE + path only.",
+            "Add cache busting only where helpful; do not disable caching globally."
+          ]
+        },
+        {
+          "id": "task-01-02",
+          "title": "UI kit + App shell",
+          "steps": [
+            "Add or stub shadcn/ui components under src/components/ui/*",
+            "Create AppShell.tsx: topbar + collapsible sidebar; include nav links",
+            "Create AdminLayout.astro that renders AppShell with <slot />",
+            "Add theme-ready container, max-w, responsive grid utility classes"
+          ],
+          "acceptance_criteria": [
+            "Sidebar works on mobile (collapsible)",
+            "Dark mode optional but styles remain legible in both"
+          ],
+          "gotchas": [
+            "If shadcn CLI isn’t usable in CI, keep components local with same API so we can swap later."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "epic-02",
+      "title": "Dashboard (/admin): Monitoring, Activity, Market Stats",
+      "success_criteria": [
+        "Monitoring status card shows active_jobs_monitored, jobs_needing_check, last_updated",
+        "Recent activity table shows rows per day with checked/modified/closed/errors",
+        "Market statistics summarized by role/location with avg_salary_min/max when present",
+        "Button to trigger POST /api/monitoring/daily-run with toasts and refetch"
+      ],
+      "tasks": [
+        {
+          "id": "task-02-01",
+          "title": "Monitoring Summary Cards",
+          "steps": [
+            "Use getMonitoringStatus() on load",
+            "Show three cards with KPIs and last_updated formatted",
+            "Add loading Skeletons; show errors inline + toast"
+          ],
+          "acceptance_criteria": [
+            "Refetch after clicking 'Run Daily Monitoring' shows updated last_updated within a minute",
+            "No layout shift after data loads (reserve space)"
+          ]
+        },
+        {
+          "id": "task-02-02",
+          "title": "Recent Activity + Market Stats",
+          "steps": [
+            "Render recent_activity as a compact table with date and aggregates",
+            "Render market_statistics with role/location and salary trend badges"
+          ],
+          "acceptance_criteria": [
+            "Tables paginate if > 25 rows",
+            "Respects mobile (horizontal scroll with sticky headers)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "epic-03",
+      "title": "Jobs (/admin/jobs) with Filters, Pagination, and Source Badges",
+      "success_criteria": [
+        "List shows Title, Company, Location, Employment Type, Status, Source",
+        "Filters for status (open|closed), source (SCRAPED|EMAIL|MANUAL)",
+        "Pagination via limit/offset; state reflected in URL query params",
+        "Source badge colors: SCRAPED (neutral/info), EMAIL (accent), MANUAL (secondary)"
+      ],
+      "tasks": [
+        {
+          "id": "task-03-01",
+          "title": "Job list table + filters",
+          "steps": [
+            "Build FilterBar (status/source selects + search text reserved for future)",
+            "Call listJobs() with params; debounce when filters change",
+            "Persist filter state in URL; parse on first render"
+          ],
+          "acceptance_criteria": [
+            "Changing filters updates query params and triggers fetch",
+            "Skeleton appears during refetch; no flashing"
+          ],
+          "gotchas": [
+            "Use AbortController to cancel prior fetch when filters change quickly."
+          ]
+        },
+        {
+          "id": "task-03-02",
+          "title": "Source badges + deep link",
+          "steps": [
+            "Each Title links to /admin/jobs/[id]",
+            "Badge reflects job.source; add visually-hidden label for a11y"
+          ],
+          "acceptance_criteria": [
+            "Tab/Enter reachable; screen readers announce source"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "epic-04",
+      "title": "Job Detail (/admin/jobs/[id]) with Compressed Tracking & Snapshot Viewer",
+      "success_criteria": [
+        "Top panel shows job core fields and source badge",
+        "Tracking timeline compresses stable periods and highlights change points",
+        "Snapshot viewer supports html/markdown inline (modal) and pdf/screenshot open-in-new-tab",
+        "Monitoring settings dialog updates via PUT /api/jobs/{id}/monitoring"
+      ],
+      "tasks": [
+        {
+          "id": "task-04-01",
+          "title": "Compressed tracking timeline",
+          "steps": [
+            "Fetch getJobTracking() → timeline, snapshots, changes",
+            "Compute 'stable periods': consecutive entries with status='checked' and identical content_hash",
+            "Render as a single row: 'Stable for N days (start→end)'",
+            "Between stable blocks, render change rows with change_type, field_changed, severity, ai_summary"
+          ],
+          "acceptance_criteria": [
+            "A 15-day unchanged window renders as one row with correct dates",
+            "Change points display badges for change_type (content/status/salary/closed)"
+          ],
+          "gotchas": [
+            "Don’t assume snapshots array is ordered; sort by created_at",
+            "If content types are missing, degrade gracefully (show what’s available)"
+          ]
+        },
+        {
+          "id": "task-04-02",
+          "title": "Snapshot viewer (modal)",
+          "steps": [
+            "Build SnapshotViewer component",
+            "For type=html: inject into a sanitized container (no remote JS execution).",
+            "For type=markdown: render via a markdown renderer with code blocks styled",
+            "For type=pdf/png: open in new tab; provide download link"
+          ],
+          "acceptance_criteria": [
+            "Large HTML doesn’t lock the UI; loading state visible",
+            "PDF/PNG never base64-inlined into page"
+          ]
+        },
+        {
+          "id": "task-04-03",
+          "title": "Monitoring settings dialog",
+          "steps": [
+            "Dialog with daily_monitoring_enabled (switch) and monitoring_frequency_hours (number)",
+            "PUT updateJobMonitoring(); on success: toast + refetch job+tracking"
+          ],
+          "acceptance_criteria": [
+            "Form validates integer >= 1 for frequency",
+            "Optimistic UI but roll back on failure with error toast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "epic-05",
+      "title": "Applicant Profile & AI Tools (/admin/applicant)",
+      "success_criteria": [
+        "Simple onboarding: paste raw job history, upload Markdown or resume text; submit to POST /api/applicant/history",
+        "Display parsed job history + current ApplicantProfile from GET /api/applicant/{user_id}/history",
+        "Generate cover letter and resume via POST /api/cover-letter and POST /api/resume with previews",
+        "Job fit rating available on job detail (uses POST /api/applicant/job-rating)"
+      ],
+      "tasks": [
+        {
+          "id": "task-05-01",
+          "title": "History ingestion (accept anything)",
+          "steps": [
+            "Textarea for raw content; radio/select for content_type (text/plain, text/markdown, application/json)",
+            "Default user_id='default-user'",
+            "POST submitApplicantHistory(); show status and processed entries; append to history list",
+            "Enable 'Paste from Clipboard' and 'Load from .md file' (client-side read -> text) paths"
+          ],
+          "acceptance_criteria": [
+            "Markdown and plain text both ingest without client-side parsing",
+            "On success, UI renders returned JobHistoryEntry rows with dates and titles"
+          ],
+          "gotchas": [
+            "Do NOT pre-parse/reserialize user content; send as-is to maximize agent effectiveness",
+            "Handle very large pasted content with a character counter and warning, but still allow submit"
+          ]
+        },
+        {
+          "id": "task-05-02",
+          "title": "AI tools: cover letter + resume",
+          "steps": [
+            "Two forms sharing a common input scaffold (job_title, company_name, job_description_text, candidate_career_summary, optional hiring_manager_name)",
+            "POST to endpoints; render HTML preview for cover letter and a block list for resume bullets/skills",
+            "Add 'Refine' textbox to append user instructions; re-submit with extra context"
+          ],
+          "acceptance_criteria": [
+            "Round-trip under 3s for typical payloads; show progress indicator",
+            "Copy-to-clipboard buttons for outputs"
+          ]
+        },
+        {
+          "id": "task-05-03",
+          "title": "Job fit rating on job detail",
+          "steps": [
+            "Button on /admin/jobs/[id] to POST /api/applicant/job-rating with user_id='default-user'",
+            "Render score breakdown bars, strengths, gaps, recommendation badge (Strong Match | Good Fit | Consider | Pass)"
+          ],
+          "acceptance_criteria": [
+            "Repeated clicks debounced (no duplicate requests); last result persists on page"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "epic-06",
+      "title": "Discovery Controls, Monitoring Queue, and Human-in-the-Loop Interest Signals",
+      "success_criteria": [
+        "Trigger discovery and monitor runs from UI with visible job counts",
+        "View jobs needing monitoring from /api/jobs/monitoring-queue",
+        "Mark jobs as Interested / Not Now locally (and future server sync via feature flag) without excluding any from data capture"
+      ],
+      "tasks": [
+        {
+          "id": "task-06-01",
+          "title": "Discovery & Monitor runs",
+          "steps": [
+            "Buttons on Dashboard to POST /api/runs/discovery and /api/runs/monitor",
+            "Show run_id and transient toast; refetch monitoring_status after completion poll (short interval, low attempts)"
+          ],
+          "acceptance_criteria": [
+            "Disabled state during request; error toast on failure; no UI freeze"
+          ]
+        },
+        {
+          "id": "task-06-02",
+          "title": "Monitoring queue",
+          "steps": [
+            "Page /admin/monitoring-queue (optional nav) listing jobs from getMonitoringQueue(limit=100)",
+            "Quick actions: open job detail, toggle local ‘monitor more frequently’ preference (stored in localStorage)"
+          ],
+          "acceptance_criteria": [
+            "Queue renders within 1s for 100 rows; virtualize if needed"
+          ]
+        },
+        {
+          "id": "task-06-03",
+          "title": "Interest signals (client-only for now)",
+          "steps": [
+            "Add Interested 👍 and Not Now 👎 toggles on list/detail; persist in localStorage keyed by job_id",
+            "Surface ‘Interested’ label in list sorting (UI only); never suppress jobs from capture or display",
+            "Prepare a small sync adapter (no-op unless FEATURE_SYNC_PREFERENCES=on) to POST to a future endpoint"
+          ],
+          "acceptance_criteria": [
+            "Refreshing preserves interest flags",
+            "No data capture is filtered out by these flags"
+          ],
+          "gotchas": [
+            "These toggles are NOT filters; they’re prioritization hints only."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "epic-07",
+      "title": "Admin: Agents, Tasks, Workflows (CRUD + Execute)",
+      "success_criteria": [
+        "Agents CRUD with dialogs, optimistic updates",
+        "Tasks CRUD filtered by agent_id",
+        "Workflows CRUD + Execute, with execution_id surfaced"
+      ],
+      "tasks": [
+        {
+          "id": "task-07-01",
+          "title": "Agents CRUD",
+          "steps": [
+            "Table for GET /api/agents?enabled",
+            "Create/Edit Dialogs mapping AgentConfig fields (id, name, role, goal, llm, tools, etc.)",
+            "DELETE with confirm"
+          ],
+          "acceptance_criteria": [
+            "All fields typed; boolean and number controls validated"
+          ]
+        },
+        {
+          "id": "task-07-02",
+          "title": "Tasks CRUD",
+          "steps": [
+            "Table for GET /api/tasks?enabled&agent_id",
+            "Create/Edit TaskConfig; show expected_output/tools/context nicely; enable/disable",
+            "DELETE with confirm"
+          ],
+          "acceptance_criteria": [
+            "Agent filter narrows list correctly"
+          ]
+        },
+        {
+          "id": "task-07-03",
+          "title": "Workflows CRUD + Execute",
+          "steps": [
+            "Table for GET /api/workflows?enabled",
+            "Create/Edit; process (sequential|hierarchical) selector",
+            "Execute button -> POST /api/workflows/{id}/execute; show execution_id"
+          ],
+          "acceptance_criteria": [
+            "Execution result banner with execution_id appears and dismisses"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "epic-08",
+      "title": "Email Ingestion Observability",
+      "success_criteria": [
+        "Show email processing logs with job_links_extracted, jobs_processed, status, received_at",
+        "Show/update email configs"
+      ],
+      "tasks": [
+        {
+          "id": "task-08-01",
+          "title": "Email logs",
+          "steps": [
+            "Table for GET /api/email/logs?limit=50 (paginate if needed)",
+            "Filters by status; link to jobs created via email if available (future enhancement)"
+          ],
+          "acceptance_criteria": [
+            "Timestamps localized to America/Los_Angeles"
+          ]
+        },
+        {
+          "id": "task-08-02",
+          "title": "Email configs",
+          "steps": [
+            "GET /api/email/configs → form → PUT /api/email/configs",
+            "Show success toast on update"
+          ],
+          "acceptance_criteria": [
+            "Validation errors are user-friendly"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "epic-09",
+      "title": "Search & Company Views",
+      "success_criteria": [
+        "Semantic search page hitting GET /api/agent/query?q=…",
+        "Company view that groups jobs by company with counts and status breakdown"
+      ],
+      "tasks": [
+        {
+          "id": "task-09-01",
+          "title": "Semantic search",
+          "steps": [
+            "Search box; debounce; call semanticJobSearch(q)",
+            "Render list with relevance_score badges and same Source badges"
+          ],
+          "acceptance_criteria": [
+            "Typing doesn’t thrash network (debounce 300–500ms; cancel in-flight)"
+          ]
+        },
+        {
+          "id": "task-09-02",
+          "title": "Company view",
+          "steps": [
+            "Client-side group by company from listJobs() (paging through until N or server adds endpoint)",
+            "Cards with total_jobs, open vs closed breakdown; click through to filtered jobs list"
+          ],
+          "acceptance_criteria": [
+            "Grouping handles >1k jobs reasonably (progressively enhance)"
+          ],
+          "gotchas": [
+            "Avoid loading ‘all jobs’ without pagination; cap or lazy-fetch pages."
+          ]
+        }
+      ]
+    }
+  ],
+  "ui_patterns": {
+    "badges": {
+      "source": {
+        "SCRAPED": "info",
+        "EMAIL": "accent",
+        "MANUAL": "secondary"
+      },
+      "change_type": {
+        "content": "default",
+        "status": "warning",
+        "salary": "purple",
+        "closed": "destructive"
+      },
+      "recommendation": {
+        "Strong Match": "success",
+        "Good Fit": "info",
+        "Consider": "warning",
+        "Pass": "secondary"
+      }
+    },
+    "loading": "Skeleton components for cards/tables; spinners for actions",
+    "errors": "Inline message + toast; preserve last good data until refresh completes",
+    "responsiveness": "Cards stack on mobile; tables scroll with sticky headers"
+  },
+  "telemetry_and_qol": {
+    "local_prefs": [
+      "Remember jobs table page size (limit) and filters",
+      "Interest flags per job (localStorage) until server endpoint exists",
+      "Feature flags: SYNC_PREFERENCES, SHOW_MONITORING_QUEUE"
+    ],
+    "a11y": [
+      "Keyboard focus rings on all actionable elements",
+      "Visually-hidden labels for badges"
+    ]
+  },
+  "deliverables": [
+    "public/openapi.json (source of truth)",
+    "src/lib/types/openapi.ts (generated)",
+    "src/lib/api.ts (typed client)",
+    "src/components/ui/* (shadcn or local equivalents)",
+    "src/components/app/AppShell.tsx",
+    "src/layouts/AdminLayout.astro",
+    "src/pages/admin/index.astro (dashboard)",
+    "src/pages/admin/jobs.astro, src/pages/admin/jobs/[id].astro",
+    "src/pages/admin/applicant.astro",
+    "src/pages/admin/agents.astro, tasks.astro, workflows.astro",
+    "Optional: src/pages/admin/search.astro, src/pages/admin/monitoring-queue.astro"
+  ],
+  "acceptance_tests": [
+    "User can paste Markdown resume into Applicant page and see parsed entries returned",
+    "Dashboard KPIs render within 1s with skeletons during load",
+    "Jobs list filter by source=status updates URL and data without page reloads",
+    "Job detail shows compressed 15-day stable window correctly",
+    "Snapshot HTML renders in modal; PDF opens in new tab",
+    "Monitoring PUT updates reflected on refetch",
+    "Cover letter and resume endpoints return content; copy buttons work",
+    "Semantic search ranks jobs and shows relevance_score",
+    "No console errors; Lighthouse best practices ≥ 95"
+  ],
+  "ci_cd": {
+    "build": "npm run build (Astro) → dist/",
+    "preview": "npm run preview",
+    "pages_deploy": "Cloudflare Pages with Astro preset; no server-side adapters required",
+    "checks": [
+      "Typecheck (tsc --noEmit)",
+      "Lint (eslint, prettier)",
+      "Basic vitest for utilities (optional)"
+    ]
+  },
+  "next_steps": [
+    "If Copilot stalls, implement Milestone 1 files manually using this plan",
+    "Backfill real shadcn/ui components via CLI once CI environment is stable",
+    "Add server endpoint for user interest flags when ready; flip SYNC_PREFERENCES"
+  ]
+}
