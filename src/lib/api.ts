@@ -30,18 +30,40 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.text()) as unknown as T;
 }
 
-export async function validateApiTokenResponse(
+export function validateApiTokenResponse(
   request: Request,
   apiToken: string,
-): Promise<Response | undefined> {
+): Response | undefined {
   const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const xApiTokenHeader = request.headers.get('x-api-token');
+
+  let token: string | null = null;
+
+  if (authHeader) {
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring('Bearer '.length).trim();
+    } else if (authHeader.startsWith('Token ')) {
+      token = authHeader.substring('Token '.length).trim();
+    }
+  } else if (xApiTokenHeader) {
+    token = xApiTokenHeader.trim();
+  }
+
+  const timingSafeEqual = (a: string, b: string): boolean => {
+    if (a.length !== b.length) {
+      return false;
+    }
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    return result === 0;
+  };
+
+  if (!token || !timingSafeEqual(token, apiToken)) {
     return Response.json({ message: 'Unauthorized' }, { status: 401 });
   }
-  const token = authHeader.slice('Bearer '.length).trim();
-  if (token !== apiToken) {
-    return Response.json({ message: 'Unauthorized' }, { status: 401 });
-  }
+
   return undefined;
 }
 
