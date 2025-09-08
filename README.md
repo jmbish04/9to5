@@ -56,6 +56,20 @@ API_TOKEN=your_token_here
 # PUBLIC_API_BASE=https://your-api.example.com
 ```
 
+### Using the 9to5-Scout backend
+
+To run the admin UI against the live 9to5-Scout backend, set the API base:
+
+```
+PUBLIC_API_BASE=https://9to5-scout.hacolby.workers.dev
+```
+
+Then start the dev server and open [http://localhost:4321/admin](http://localhost:4321/admin):
+
+```
+npm run dev
+```
+
 _An API token is required to authenticate requests to the API. You should generate this before trying to run the project locally or deploying it._
 
 3. Create a [D1 database](https://developers.cloudflare.com/d1/get-started/) with the name "admin-db":

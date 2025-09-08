@@ -1,35 +1,16 @@
-// Add Applicant & AI endpoints (Milestone 2)
-import type {
-  Job,
-  MonitoringStatus,
-  JobTrackingPayload,
-  ApplicantHistoryResponse,
-  CoverLetterResponse,
-  ResumeResponse,
-  JobRating
-} from './types/api';
+import { getApiBase } from './config';
 
-// Allow overriding the API base URL via environment variable. When unset,
-// requests will default to the same origin as the frontend.
-const API_BASE = (import.meta.env.PUBLIC_API_BASE || '').replace(/\/$/, '');
-
-async function http<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${getApiBase()}${path}`, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {})
-    }
+    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${res.statusText} :: ${text}`.slice(0, 2048));
+    console.error('API error', res.status, path, text);
+    throw new Error(`API ${res.status} ${path}`);
   }
-  // some endpoints may return empty
-  if (res.status === 204) return undefined as unknown as T;
-  const ct = res.headers.get('content-type') || '';
-  if (ct.includes('application/json')) return (await res.json()) as T;
-  return (await res.text()) as unknown as T;
+  return res.json() as Promise<T>;
 }
 
 export function validateApiTokenResponse(
@@ -69,101 +50,66 @@ export function validateApiTokenResponse(
   return undefined;
 }
 
-export async function getMonitoringStatus(): Promise<MonitoringStatus> {
-  return http<MonitoringStatus>('/api/monitoring/status');
-}
+// Monitoring
+export const getMonitoringStatus = () =>
+  req<{ last_run_at?: string; next_scheduled_at?: string; queued?: number; recent_counts?: Record<string, number> }>('/api/monitoring/status');
+export const runMonitor = () =>
+  req<{ run_id: string; status: string }>('/api/runs/monitor', { method: 'POST' });
 
-export interface ListJobsParams {
-  limit?: number;
-  offset?: number;
-  status?: 'open' | 'closed';
-  source?: 'SCRAPED' | 'EMAIL' | 'MANUAL';
-}
-export async function listJobs(params: ListJobsParams = {}): Promise<Job[]> {
-  const qs = new URLSearchParams();
-  if (params.limit != null) qs.set('limit', String(params.limit));
-  if (params.offset != null) qs.set('offset', String(params.offset));
-  if (params.status) qs.set('status', params.status);
-  if (params.source) qs.set('source', params.source);
-  const q = qs.toString();
-  return http<Job[]>(`/api/jobs${q ? `?${q}` : ''}`);
-}
+// Jobs
+export const listJobs = (q: { limit?: number; offset?: number; status?: string; source?: string } = {}) =>
+  req<any[]>(
+    '/api/jobs?' +
+      new URLSearchParams(
+        Object.entries(q)
+          .filter(([, v]) => v != null)
+          .map(([k, v]) => [k, String(v)])
+      ).toString()
+  );
+export const getJob = (id: string) => req<any>(`/api/jobs/${id}`);
+export const getJobTracking = (id: string) => req<any>(`/api/jobs/${id}/tracking`);
+export const updateJobMonitoring = (
+  id: string,
+  body: { daily_monitoring_enabled?: boolean; monitoring_frequency_hours?: number }
+) => req<any>(`/api/jobs/${id}/monitoring`, { method: 'PUT', body: JSON.stringify(body) });
 
-export async function getJob(id: string): Promise<Job> {
-  return http<Job>(`/api/jobs/${encodeURIComponent(id)}`);
-}
-
-export async function getJobTracking(id: string): Promise<JobTrackingPayload> {
-  return http<JobTrackingPayload>(`/api/jobs/${encodeURIComponent(id)}/tracking`);
-}
-
-export async function updateJobMonitoring(id: string, body: {
-  daily_monitoring_enabled?: boolean;
-  monitoring_frequency_hours?: number;
-}): Promise<Job> {
-  return http<Job>(`/api/jobs/${encodeURIComponent(id)}/monitoring`, {
-    method: 'PUT',
-    body: JSON.stringify(body)
-  });
-}
-
-/* ===== Applicant & AI endpoints ===== */
-
-export async function getApplicantHistory(userId: string): Promise<ApplicantHistoryResponse> {
-  return http<ApplicantHistoryResponse>(`/api/applicant/${encodeURIComponent(userId)}/history`);
-}
-
-export async function submitApplicantHistory(body: {
+// Applicant & AI
+export const getApplicant = () => req<any>('/api/applicant');
+export const getApplicantHistory = () => req<any>('/api/applicant/history');
+export const submitApplicantHistory = (body: {
   user_id: string;
   raw_content: string;
   content_type?: 'text/plain' | 'text/markdown' | 'application/json';
-}): Promise<{
-  success: boolean;
-  submission_id: string;
-  applicant_id: string;
-  entries_processed: number;
-  entries: unknown[];
-}> {
-  return http(`/api/applicant/history`, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
-}
+}) =>
+  req<{ success: boolean; submission_id: string; applicant_id: string; entries_processed: number; entries: unknown[] }>(
+    '/api/applicant/history',
+    { method: 'POST', body: JSON.stringify(body) }
+  );
+export const rateJob = (body: { job_id: string; rating: number; rationale?: string }) =>
+  req<{ success: boolean }>(`/api/applicant/job-rating`, { method: 'POST', body: JSON.stringify(body) });
+export const generateCoverLetter = (body: any) =>
+  req<{ cover_letter: string; html?: string }>(`/api/cover-letter`, { method: 'POST', body: JSON.stringify(body) });
+export const generateResume = (body: any) =>
+  req<{ summary: string; experience_bullets: string[]; skills: string[] }>(`/api/resume`, { method: 'POST', body: JSON.stringify(body) });
+export const createCoverLetter = generateCoverLetter;
+export const createResume = generateResume;
+export const generateJobRating = rateJob;
 
-export async function createCoverLetter(body: {
-  job_title: string;
-  company_name: string;
-  job_description_text: string;
-  candidate_career_summary: string;
-  hiring_manager_name?: string;
-}): Promise<CoverLetterResponse> {
-  return http<CoverLetterResponse>(`/api/cover-letter`, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
-}
-
-export async function createResume(body: {
-  job_title: string;
-  company_name: string;
-  job_description_text: string;
-  candidate_career_summary: string;
-}): Promise<ResumeResponse> {
-  return http<ResumeResponse>(`/api/resume`, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
-}
-
-export async function generateJobRating(body: {
-  user_id: string;
-  job_id: string;
-}): Promise<JobRating> {
-  return http<JobRating>(`/api/applicant/job-rating`, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
-}
+// Email
+export const getEmailConfigs = () => req<{ configs: any[] }>(`/api/email/configs`);
+export const updateEmailConfigs = (cfg: any) =>
+  req<{ success: boolean }>(`/api/email/configs`, { method: 'PUT', body: JSON.stringify(cfg) });
+export const getEmailLogs = (q: { limit?: number } = {}) =>
+  req<{ logs: any[] }>(
+    '/api/email/logs?' +
+      new URLSearchParams(
+        Object.entries(q)
+          .filter(([, v]) => v != null)
+          .map(([k, v]) => [k, String(v)])
+      ).toString()
+  );
+export const sendEmailInsights = () =>
+  req<{ success: boolean; message: string }>(`/api/email/insights/send`, { method: 'POST' });
 
 // Utility
 export function fmtDateTime(ts?: string) {
