@@ -15,6 +15,12 @@ const { data, error } = await (async () => {
     return { data: null, error: e };
   }
 })();
+const hasData =
+  data &&
+  (data.last_run_at ||
+    data.next_scheduled_at ||
+    data.queued != null ||
+    (data.recent_counts && Object.keys(data.recent_counts).length));
 ---
 <AdminLayout>
   <Card>
@@ -22,20 +28,29 @@ const { data, error } = await (async () => {
     <CardContent>
       {
         data ? (
-          <div class="space-y-1 text-sm">
-            <div><span class="font-medium">Last run:</span> {fmt(data.last_run_at)}</div>
-            <div><span class="font-medium">Next scheduled:</span> {fmt(data.next_scheduled_at)}</div>
-            <div><span class="font-medium">Queued:</span> {data.queued ?? 0}</div>
-            {data.recent_counts && (
-              <ul class="mt-2 space-y-1">
-                {Object.entries(data.recent_counts).map(([k, v]) => (
-                  <li>{k}: {v}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+          hasData ? (
+            <div class="space-y-1 text-sm">
+              <div><span class="font-medium">Last run:</span> {fmt(data.last_run_at)}</div>
+              <div><span class="font-medium">Next scheduled:</span> {fmt(data.next_scheduled_at)}</div>
+              <div><span class="font-medium">Queued:</span> {data.queued ?? 0}</div>
+              {data.recent_counts && (
+                <ul class="mt-2 space-y-1">
+                  {Object.entries(data.recent_counts).map(([k, v]) => (
+                    <li>{k}: {v}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <div class="text-sm text-muted-foreground">No monitoring data.</div>
+          )
         ) : error ? (
-          <div class="text-sm text-red-700">Failed to load status.</div>
+          <div class="text-sm text-red-700">
+            Failed to load status.
+            <button type="button" onclick="location.reload()" class="ml-2 underline">
+              Retry
+            </button>
+          </div>
         ) : (
           <Skeleton class="h-16 w-full" />
         )
