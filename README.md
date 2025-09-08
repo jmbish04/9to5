@@ -51,6 +51,9 @@ Add your API token:
 
 ```
 API_TOKEN=your_token_here
+
+# Optionally override the API base URL
+# PUBLIC_API_BASE=https://your-api.example.com
 ```
 
 _An API token is required to authenticate requests to the API. You should generate this before trying to run the project locally or deploying it._
@@ -106,3 +109,26 @@ npx wrangler secret put API_TOKEN
 This project includes a fully functional admin dashboard with customer and subscription management capabilities. It also includes an API with token authentication to access resources via REST, returning JSON data.
 
 It also includes a "Customer Workflow", built with [Cloudflare Workflows](https://developers.cloudflare.com/workflows). This workflow can be triggered in the UI or via the REST API to do arbitrary actions in the background for any given user. See [`customer_workflow.ts`]() to learn more about what you can do in this workflow.
+
+## Getting Started (Backend)
+
+1. Initialize the job tracking tables:
+
+   ```bash
+   wrangler d1 execute admin-db --file=./schema.sql
+   ```
+
+2. Configure the API base for local development in `.dev.vars` (defaults to same origin):
+
+   ```bash
+   PUBLIC_API_BASE=http://localhost:8787
+   ```
+
+3. Run the smoke tests to verify core endpoints:
+
+   ```bash
+   npm run dev:smoke
+   ```
+
+Current endpoints: `/api/monitoring/status`, `/api/jobs`, `/api/jobs/:id`, `/api/jobs/:id/tracking`, `/api/jobs/:id/monitoring`, `/api/runs/monitor`, `/api/runs/discovery`.
+Upcoming: applicant & AI routes, email routes.
