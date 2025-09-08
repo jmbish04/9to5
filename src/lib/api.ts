@@ -9,7 +9,9 @@ import type {
   JobRating
 } from './types/api';
 
-const API_BASE = 'https://9to5-scout.hacolby.workers.dev';
+// Allow overriding the API base URL via environment variable. When unset,
+// requests will default to the same origin as the frontend.
+const API_BASE = (import.meta.env.PUBLIC_API_BASE || '').replace(/\/$/, '');
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

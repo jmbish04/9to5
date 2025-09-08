@@ -11,12 +11,18 @@ const offset = Number(url.searchParams.get('offset') || 0);
 const status = (url.searchParams.get('status') || '') as 'open' | 'closed' | '';
 const source = (url.searchParams.get('source') || '') as 'SCRAPED' | 'EMAIL' | 'MANUAL' | '';
 
-const jobs = await listJobs({
-  limit,
-  offset,
-  status: status || undefined,
-  source: source || undefined
-});
+let jobs = [];
+let loadError = null;
+try {
+  jobs = await listJobs({
+    limit,
+    offset,
+    status: status || undefined,
+    source: source || undefined
+  });
+} catch (e) {
+  loadError = e;
+}
 
 function qs(next: Record<string, string | number | undefined>) {
   const u = new URL(Astro.request.url);
@@ -73,28 +79,32 @@ function qs(next: Record<string, string | number | undefined>) {
         </tr>
       </thead>
       <tbody class="divide-y">
-        {jobs.map((j) => (
-          <tr class="hover:bg-neutral-50">
-            <td class="px-3 py-2">
-              <a class="font-medium hover:underline" href={`/admin/jobs/${encodeURIComponent(j.id)}`}>{j.title || 'Untitled'}</a>
-            </td>
-            <td class="px-3 py-2">{j.company || '—'}</td>
-            <td class="px-3 py-2">{j.location || '—'}</td>
-            <td class="px-3 py-2">{j.employment_type || '—'}</td>
-            <td class="px-3 py-2">{j.status || '—'}</td>
-            <td class="px-3 py-2">
-              {j.source
-                ? <Badge client:only="react" variant={j.source === 'EMAIL' ? 'accent' : j.source === 'MANUAL' ? 'secondary' : 'info'}>{j.source}</Badge>
-                : '—'}
-            </td>
-          </tr>
-        ))}
+        {loadError ? (
+          <tr><td colspan="6" class="px-3 py-2 text-red-700">Failed to load jobs.</td></tr>
+        ) : (
+          jobs.map((j) => (
+            <tr class="hover:bg-neutral-50">
+              <td class="px-3 py-2">
+                <a class="font-medium hover:underline" href={`/admin/jobs/${encodeURIComponent(j.id)}`}>{j.title || 'Untitled'}</a>
+              </td>
+              <td class="px-3 py-2">{j.company || '—'}</td>
+              <td class="px-3 py-2">{j.location || '—'}</td>
+              <td class="px-3 py-2">{j.employment_type || '—'}</td>
+              <td class="px-3 py-2">{j.status || '—'}</td>
+              <td class="px-3 py-2">
+                {j.source
+                  ? <Badge client:only="react" variant={j.source === 'EMAIL' ? 'accent' : j.source === 'MANUAL' ? 'secondary' : 'info'}>{j.source}</Badge>
+                  : '—'}
+              </td>
+            </tr>
+          ))
+        )}
       </tbody>
     </table>
   </div>
 
   <div class="mt-3 flex items-center justify-between">
-    <div class="text-xs text-neutral-500">Showing {jobs.length} rows</div>
+    <div class="text-xs text-neutral-500">{loadError ? 'No data' : `Showing ${jobs.length} rows`}</div>
     <div class="flex gap-2">
       <a class="rounded border px-2 py-1 text-sm hover:bg-neutral-50"
          href={qs({ offset: Math.max(0, offset - limit) })}>Previous</a>

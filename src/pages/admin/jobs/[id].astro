@@ -7,10 +7,17 @@ import { Input } from '../../../components/ui/input';
 
 const { id } = Astro.params;
 
-const [job, tracking] = await Promise.all([
-  getJob(id),
-  getJobTracking(id)
-]);
+let job = null;
+let tracking = null;
+let loadError = null;
+try {
+  [job, tracking] = await Promise.all([
+    getJob(id),
+    getJobTracking(id)
+  ]);
+} catch (e) {
+  loadError = e;
+}
 
 // compress stable periods (same content_hash across consecutive 'checked')
 function compress(timeline) {
@@ -36,70 +43,76 @@ function compress(timeline) {
   }
   return out;
 }
-const compressed = compress(tracking.timeline || []);
+const compressed = compress(tracking?.timeline || []);
 ---
 <AdminLayout>
-  <div class="mb-4">
-    <div class="text-lg font-semibold">{job.title || 'Untitled'}</div>
-    <div class="text-sm text-neutral-600">{job.company || '—'} · {job.location || '—'} · {job.employment_type || '—'}</div>
-    <div class="mt-2">
-      {job.source ? <Badge client:only="react" variant={job.source === 'EMAIL' ? 'accent' : job.source === 'MANUAL' ? 'secondary' : 'info'}>{job.source}</Badge> : null}
-    </div>
-  </div>
-
-  <section class="mb-6 rounded-lg border border-neutral-200 bg-white p-4">
-    <h3 class="mb-3 text-sm font-semibold">Monitoring Settings</h3>
-    <form
-      onsubmit="return false;"
-      class="grid max-w-md grid-cols-2 items-end gap-3"
-      id="monitoringForm"
-    >
-      <label class="col-span-2 flex items-center gap-2 text-sm">
-        <input type="checkbox" id="monEnabled" />
-        Daily monitoring enabled
-      </label>
-      <div>
-        <div class="mb-1 text-xs text-neutral-600">Frequency (hours)</div>
-        <Input id="monFreq" type="number" min="1" value="24" />
+  {loadError ? (
+    <div class="text-red-700">Failed to load job.</div>
+  ) : (
+    <>
+      <div class="mb-4">
+        <div class="text-lg font-semibold">{job.title || 'Untitled'}</div>
+        <div class="text-sm text-neutral-600">{job.company || '—'} · {job.location || '—'} · {job.employment_type || '—'}</div>
+        <div class="mt-2">
+          {job.source ? <Badge client:only="react" variant={job.source === 'EMAIL' ? 'accent' : job.source === 'MANUAL' ? 'secondary' : 'info'}>{job.source}</Badge> : null}
+        </div>
       </div>
-      <div>
-        <Button
-          client:only="react"
-          onClick={async () => {
-            const enabled = (document.getElementById('monEnabled') as HTMLInputElement).checked;
-            const freq = Number((document.getElementById('monFreq') as HTMLInputElement).value || '24');
-            try {
-              await updateJobMonitoring(String(id), { daily_monitoring_enabled: enabled, monitoring_frequency_hours: freq });
-              alert('Monitoring updated');
-              location.reload();
-            } catch (e) {
-              alert('Failed to update monitoring');
-            }
-          }}
-        >Save Settings</Button>
-      </div>
-    </form>
-  </section>
 
-  <section class="rounded-lg border border-neutral-200 bg-white p-4">
-    <h3 class="mb-3 text-sm font-semibold">Tracking Timeline</h3>
-    <div class="space-y-2">
-      {compressed.map((row) => (
-        row.type === 'stable'
-          ? <div class="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm">
-              Stable for {row.days} day(s): {row.from.tracking_date} → {row.to.tracking_date}
-              <div class="text-xs text-neutral-600">hash {row.from.content_hash}</div>
-            </div>
-          : <div class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
-              <div class="font-medium">Event: {row.entry.status}</div>
-              {row.entry.change_summary ? <div class="mt-1 text-xs">{row.entry.change_summary}</div> : null}
-              <div class="mt-1 text-xs text-neutral-600">{fmtDateTime(row.entry.created_at)}</div>
-            </div>
-      ))}
-    </div>
+      <section class="mb-6 rounded-lg border border-neutral-200 bg-white p-4">
+        <h3 class="mb-3 text-sm font-semibold">Monitoring Settings</h3>
+        <form
+          onsubmit="return false;"
+          class="grid max-w-md grid-cols-2 items-end gap-3"
+          id="monitoringForm"
+        >
+          <label class="col-span-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" id="monEnabled" />
+            Daily monitoring enabled
+          </label>
+          <div>
+            <div class="mb-1 text-xs text-neutral-600">Frequency (hours)</div>
+            <Input id="monFreq" type="number" min="1" value="24" />
+          </div>
+          <div>
+            <Button
+              client:only="react"
+              onClick={async () => {
+                const enabled = (document.getElementById('monEnabled') as HTMLInputElement).checked;
+                const freq = Number((document.getElementById('monFreq') as HTMLInputElement).value || '24');
+                try {
+                  await updateJobMonitoring(String(id), { daily_monitoring_enabled: enabled, monitoring_frequency_hours: freq });
+                  alert('Monitoring updated');
+                  location.reload();
+                } catch (e) {
+                  alert('Failed to update monitoring');
+                }
+              }}
+            >Save Settings</Button>
+          </div>
+        </form>
+      </section>
 
-    <div class="mt-6 text-xs text-neutral-500">
-      Tip: snapshots & content viewer wire up in Milestone 2 (HTML/MD modal, PDF/PNG open-in-new-tab).
-    </div>
-  </section>
+      <section class="rounded-lg border border-neutral-200 bg-white p-4">
+        <h3 class="mb-3 text-sm font-semibold">Tracking Timeline</h3>
+        <div class="space-y-2">
+          {compressed.map((row) => (
+            row.type === 'stable'
+              ? <div class="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm">
+                  Stable for {row.days} day(s): {row.from.tracking_date} → {row.to.tracking_date}
+                  <div class="text-xs text-neutral-600">hash {row.from.content_hash}</div>
+                </div>
+              : <div class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+                  <div class="font-medium">Event: {row.entry.status}</div>
+                  {row.entry.change_summary ? <div class="mt-1 text-xs">{row.entry.change_summary}</div> : null}
+                  <div class="mt-1 text-xs text-neutral-600">{fmtDateTime(row.entry.created_at)}</div>
+                </div>
+          ))}
+        </div>
+
+        <div class="mt-6 text-xs text-neutral-500">
+          Tip: snapshots & content viewer wire up in Milestone 2 (HTML/MD modal, PDF/PNG open-in-new-tab).
+        </div>
+      </section>
+    </>
+  )}
 </AdminLayout>
