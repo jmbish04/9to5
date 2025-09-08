@@ -106,3 +106,99 @@ export interface JobTrackingPayload {
   snapshots: Snapshot[];
   changes: Change[];
 }
+
+/* ===== Applicant & AI types (subset from OpenAPI) ===== */
+
+export interface ApplicantProfile {
+  id?: string;
+  user_id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  current_title?: string;
+  target_roles?: string[];
+  years_experience?: number;
+  education_level?: string;
+  skills?: string[];
+  preferences?: {
+    locations?: string[];
+    salary_min?: number;
+    salary_max?: number;
+    employment_types?: string[];
+    remote_preference?: 'required' | 'preferred' | 'no_preference';
+  };
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface JobHistoryEntry {
+  id: string;
+  applicant_id: string;
+  company_name?: string;
+  job_title?: string;
+  department?: string;
+  employment_type?: string;
+  start_date?: string; // date
+  end_date?: string;   // date
+  is_current?: boolean;
+  location?: string;
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
+  responsibilities?: string; // markdown
+  achievements?: string;     // markdown
+  skills_used?: string[];
+  technologies?: string[];
+  keywords?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface JobHistorySubmission {
+  id: string;
+  applicant_id: string;
+  raw_content: string;
+  content_type: 'text/plain' | 'text/markdown' | 'application/json';
+  processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  processing_error?: string;
+  processed_entries?: number;
+  submitted_at?: string;
+  processed_at?: string;
+}
+
+export interface ApplicantHistoryResponse {
+  applicant?: ApplicantProfile | null;
+  job_history: JobHistoryEntry[];
+  submissions: JobHistorySubmission[];
+}
+
+export interface CoverLetterResponse {
+  cover_letter: string;
+  html?: string;
+}
+
+export interface ResumeResponse {
+  summary: string;
+  experience_bullets: string[];
+  skills: string[];
+}
+
+export interface JobRating {
+  id: string;
+  applicant_id: string;
+  job_id: string;
+  overall_score: number; // 1-100
+  skill_match_score?: number;
+  experience_match_score?: number;
+  compensation_fit_score?: number;
+  location_fit_score?: number;
+  company_culture_score?: number;
+  growth_potential_score?: number;
+  rating_summary?: string;
+  recommendation?: 'Strong Match' | 'Good Fit' | 'Consider' | 'Pass';
+  strengths?: string[];
+  gaps?: string[];
+  improvement_suggestions?: string;
+  created_at?: string;
+  updated_at?: string;
+}
