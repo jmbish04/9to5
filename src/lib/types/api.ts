@@ -1,4 +1,6 @@
-// Extend temporary types for Applicant & AI tools (replace with generated types later)
+// Temporary hand-written types for Milestone 1.
+// Replace with generated types after you add `openapi-typescript` and run `pnpm types:api`.
+
 export type SourceType = 'SCRAPED' | 'EMAIL' | 'MANUAL';
 
 export interface Job {

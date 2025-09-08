@@ -23,6 +23,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => '');
     throw new Error(`${res.status} ${res.statusText} :: ${text}`.slice(0, 2048));
   }
+  // some endpoints may return empty
   if (res.status === 204) return undefined as unknown as T;
   const ct = res.headers.get('content-type') || '';
   if (ct.includes('application/json')) return (await res.json()) as T;
