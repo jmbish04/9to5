@@ -30,6 +30,21 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.text()) as unknown as T;
 }
 
+export async function validateApiTokenResponse(
+  request: Request,
+  apiToken: string,
+): Promise<Response | undefined> {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return Response.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+  const token = authHeader.slice('Bearer '.length).trim();
+  if (token !== apiToken) {
+    return Response.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+  return undefined;
+}
+
 export async function getMonitoringStatus(): Promise<MonitoringStatus> {
   return http<MonitoringStatus>('/api/monitoring/status');
 }
