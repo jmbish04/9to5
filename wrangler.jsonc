@@ -1,11 +1,16 @@
 {
   "name": "9to5",
-  "main": "./dist/index.js",
+  "main": "dist/_worker.js",
   "assets": {
     "directory": "./dist"
   },
-  "compatibility_date": "2025-04-01",
+  "name": "9to5",
+  "main": "dist/_worker.js",
+  "compatibility_date": "2024-12-01",
   "compatibility_flags": ["nodejs_compat"],
+  // optional but recommended: keep deploy reproducible
+  "build": { "command": "npm run build" },
+    
   "observability": {
     "enabled": true
   },
@@ -20,7 +25,10 @@
       "database_id": "b5bc0929-de67-4982-a767-3847375b0d8b"
     }
   ],
-  "workflows": [
+  "kv_namespaces": [
+      { "binding": "SESSION", "id": "df5aa39254fd4905a2f0e035f2d6a0c2" }
+  ],  
+    "workflows": [
     {
       "name": "saas-admin-template-customer-workflow",
       "binding": "CUSTOMER_WORKFLOW",
