@@ -1,4 +1,6 @@
 // OpenAI service for real AI model integration
+import type { AIEnvironmentConfig } from '../config';
+
 export interface OpenAIConfig {
   apiKey: string;
   baseURL?: string;
@@ -36,6 +38,19 @@ export class OpenAIService {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL || 'https://api.openai.com/v1';
     this.timeout = config.timeout || 30000;
+  }
+
+  // Create from AI environment configuration
+  static fromAIConfig(aiConfig: AIEnvironmentConfig): OpenAIService | null {
+    if (!aiConfig.openai.enabled || !aiConfig.openai.apiKey) {
+      return null;
+    }
+
+    return new OpenAIService({
+      apiKey: aiConfig.openai.apiKey,
+      baseURL: aiConfig.openai.baseUrl,
+      timeout: aiConfig.openai.timeout
+    });
   }
 
   async createChatCompletion(
@@ -144,5 +159,23 @@ export class OpenAIService {
       apiKey: apiKey!,
       ...config
     });
+  }
+
+  // Test connection to OpenAI API
+  async testConnection(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await this.createChatCompletion(
+        'gpt-3.5-turbo',
+        [{ role: 'user', content: 'Hello' }],
+        { max_tokens: 5 }
+      );
+      
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 }

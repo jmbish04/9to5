@@ -2,44 +2,77 @@ import type {
   AgentRequest, 
   AgentResponse, 
   AgentConfig,
-  AgentHealthStatus 
+  AgentHealthStatus,
+  AIEnvironmentConfig
 } from './types';
 import { BaseAgent } from './types';
 import { JobDiscoveryAgent } from './agents/job-discovery';
 import { ContentGenerationAgent } from './agents/content-generation';
 import { CareerCoachAgent } from './agents/career-coach';
 import { MarketIntelligenceAgent } from './agents/market-intelligence';
+import { OpenAIService } from './services/openai';
+import { AIDatabase } from './services/database';
+import { createAIConfig, isOpenAIAvailable, getAgentsConfig } from './config';
+
+export interface OrchestratorConfig {
+  env?: any; // Cloudflare env object
+  database?: D1Database;
+}
 
 export class AgentOrchestrator {
   private agents: Map<string, BaseAgent> = new Map();
   private metrics: Map<string, any> = new Map();
+  private openaiService: OpenAIService | null = null;
+  private database: AIDatabase | null = null;
+  private aiConfig: AIEnvironmentConfig;
   
-  constructor(configs: Record<string, AgentConfig>) {
-    this.initializeAgents(configs);
+  constructor(config: OrchestratorConfig = {}) {
+    // Load AI configuration from environment
+    this.aiConfig = createAIConfig(config.env);
+    
+    // Initialize database if available
+    if (config.database) {
+      this.database = new AIDatabase(config.database);
+    }
+    
+    // Initialize OpenAI service if available
+    if (isOpenAIAvailable(this.aiConfig)) {
+      this.openaiService = OpenAIService.fromAIConfig(this.aiConfig);
+    }
+    
+    this.initializeAgents();
   }
   
-  private initializeAgents(configs: Record<string, AgentConfig>): void {
+  private initializeAgents(): void {
+    const agentConfigs = getAgentsConfig(this.aiConfig.environment);
+    
     // Initialize Job Discovery Agent
-    if (configs.job_discovery) {
-      this.agents.set('job_discovery', new JobDiscoveryAgent(configs.job_discovery));
-    }
+    this.agents.set('job_discovery', new JobDiscoveryAgent({
+      ...agentConfigs.job_discovery,
+      openaiService: this.openaiService,
+      database: this.database
+    } as any));
     
     // Initialize Content Generation Agent
-    if (configs.content_generation) {
-      this.agents.set('content_generation', new ContentGenerationAgent(configs.content_generation));
-    }
+    this.agents.set('content_generation', new ContentGenerationAgent({
+      ...agentConfigs.content_generation,
+      openaiService: this.openaiService,
+      database: this.database
+    } as any));
     
     // Initialize Career Coach Agent
-    if (configs.career_coach) {
-      this.agents.set('career_coach', new CareerCoachAgent(configs.career_coach));
-    }
+    this.agents.set('career_coach', new CareerCoachAgent({
+      ...agentConfigs.career_coach,
+      openaiService: this.openaiService,
+      database: this.database
+    } as any));
     
     // Initialize Market Intelligence Agent
-    if (configs.market_intelligence) {
-      this.agents.set('market_intelligence', new MarketIntelligenceAgent(configs.market_intelligence));
-    }
-    
-    // TODO: Add Application Assistant Agent when implemented
+    this.agents.set('market_intelligence', new MarketIntelligenceAgent({
+      ...agentConfigs.market_intelligence,
+      openaiService: this.openaiService,
+      database: this.database
+    } as any));
   }
   
   async processRequest(request: AgentRequest): Promise<AgentResponse> {
@@ -163,6 +196,69 @@ export class AgentOrchestrator {
   
   getMetrics(): Map<string, any> {
     return new Map(this.metrics);
+  }
+
+  // Get comprehensive system status
+  async getSystemStatus(): Promise<{
+    agents: Map<string, AgentHealthStatus>;
+    configuration: {
+      openai_enabled: boolean;
+      agents_enabled: boolean;
+      fallback_mode: boolean;
+      database_available: boolean;
+      environment: string;
+    };
+    database_stats?: {
+      total_requests: number;
+      success_rate: number;
+      avg_execution_time: number;
+      total_cost_cents: number;
+    };
+  }> {
+    const agents = await this.healthCheck();
+    
+    const result = {
+      agents,
+      configuration: {
+        openai_enabled: isOpenAIAvailable(this.aiConfig),
+        agents_enabled: this.aiConfig.agents.enabled,
+        fallback_mode: this.aiConfig.agents.fallbackMode,
+        database_available: !!this.database,
+        environment: this.aiConfig.environment
+      }
+    } as any;
+
+    // Add database statistics if available
+    if (this.database) {
+      try {
+        result.database_stats = await this.database.getAgentRequestStats(undefined, 24);
+      } catch (error) {
+        console.warn('Failed to get database stats:', error);
+      }
+    }
+
+    return result;
+  }
+
+  // Get AI configuration
+  getConfiguration(): AIEnvironmentConfig {
+    return { ...this.aiConfig };
+  }
+
+  // Test OpenAI connectivity if available
+  async testOpenAIConnection(): Promise<{ success: boolean; error?: string }> {
+    if (!this.openaiService) {
+      return { success: false, error: 'OpenAI service not available' };
+    }
+
+    try {
+      return await this.openaiService.testConnection();
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
   }
   
   private updateMetrics(agentName: string, response: AgentResponse): void {

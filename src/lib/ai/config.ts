@@ -1,5 +1,44 @@
 import type { AgentsConfig } from './types';
 
+// Environment-based AI configuration
+export interface AIEnvironmentConfig {
+  openai: {
+    apiKey?: string;
+    baseUrl: string;
+    timeout: number;
+    enabled: boolean;
+  };
+  agents: {
+    enabled: boolean;
+    fallbackMode: boolean;
+  };
+  environment: 'development' | 'production';
+}
+
+// Create environment configuration from Cloudflare env
+export function createAIConfig(env?: any): AIEnvironmentConfig {
+  const isProduction = env?.NODE_ENV === 'production' || env?.ENVIRONMENT === 'production';
+  
+  return {
+    openai: {
+      apiKey: env?.OPENAI_API_KEY,
+      baseUrl: env?.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+      timeout: parseInt(env?.OPENAI_TIMEOUT || '30000', 10),
+      enabled: !!(env?.OPENAI_API_KEY && env.OPENAI_API_KEY.startsWith('sk-'))
+    },
+    agents: {
+      enabled: env?.AI_AGENTS_ENABLED !== 'false',
+      fallbackMode: env?.AI_FALLBACK_MODE !== 'false'
+    },
+    environment: isProduction ? 'production' : 'development'
+  };
+}
+
+// Check if OpenAI is available and configured
+export function isOpenAIAvailable(config: AIEnvironmentConfig): boolean {
+  return config.openai.enabled && !!config.openai.apiKey;
+}
+
 // Default agent configurations for different environments
 export const getAgentsConfig = (env: string = 'development'): AgentsConfig => {
   const configs = {
