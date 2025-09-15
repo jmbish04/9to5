@@ -1,11 +1,6 @@
 // Database service for AI agents
 import type { 
-  AgentRequest, 
-  JobMatch, 
-  GeneratedContent, 
-  CareerInsight, 
-  MarketIntelligence,
-  UserPreferences 
+  AgentRequest 
 } from '../types';
 
 // AI Agent Request tracking
@@ -196,11 +191,11 @@ export class AIDatabase {
     const result = await this.db.prepare(sql).bind(...params).first();
     
     return {
-      total_requests: result?.total_requests || 0,
-      success_rate: result?.success_rate || 0,
-      avg_execution_time: result?.avg_execution_time || 0,
-      total_token_usage: result?.total_token_usage || 0,
-      total_cost_cents: result?.total_cost_cents || 0
+      total_requests: (result?.total_requests as number) || 0,
+      success_rate: (result?.success_rate as number) || 0,
+      avg_execution_time: (result?.avg_execution_time as number) || 0,
+      total_token_usage: (result?.total_token_usage as number) || 0,
+      total_cost_cents: (result?.total_cost_cents as number) || 0
     };
   }
 
@@ -237,7 +232,7 @@ export class AIDatabase {
       LIMIT ?
     `).bind(applicant_id, limit).all();
 
-    return results.results as AIJobMatchRecord[];
+    return (results.results as unknown) as AIJobMatchRecord[];
   }
 
   // Content Generation
@@ -281,7 +276,7 @@ export class AIDatabase {
     sql += ' ORDER BY created_at DESC LIMIT 50';
 
     const results = await this.db.prepare(sql).bind(...params).all();
-    return results.results as AIGeneratedContentRecord[];
+    return (results.results as unknown) as AIGeneratedContentRecord[];
   }
 
   // Career Insights
@@ -322,7 +317,7 @@ export class AIDatabase {
     sql += ' ORDER BY created_at DESC LIMIT 20';
 
     const results = await this.db.prepare(sql).bind(...params).all();
-    return results.results as AICareerInsightRecord[];
+    return (results.results as unknown) as AICareerInsightRecord[];
   }
 
   // Market Intelligence

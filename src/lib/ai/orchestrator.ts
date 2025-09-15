@@ -3,7 +3,7 @@ import type {
   AgentResponse, 
   AgentConfig,
   AgentHealthStatus,
-  AIEnvironmentConfig
+  AgentsConfig
 } from './types';
 import { BaseAgent } from './types';
 import { JobDiscoveryAgent } from './agents/job-discovery';
@@ -24,7 +24,7 @@ export class AgentOrchestrator {
   private metrics: Map<string, any> = new Map();
   private openaiService: OpenAIService | null = null;
   private database: AIDatabase | null = null;
-  private aiConfig: AIEnvironmentConfig;
+  private aiConfig: any;
   
   constructor(config: OrchestratorConfig = {}) {
     // Load AI configuration from environment
@@ -241,7 +241,7 @@ export class AgentOrchestrator {
   }
 
   // Get AI configuration
-  getConfiguration(): AIEnvironmentConfig {
+  getConfiguration(): any {
     return { ...this.aiConfig };
   }
 
