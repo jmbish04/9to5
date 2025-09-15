@@ -40,12 +40,11 @@ try {
                 <CardTitle class="text-base">{agent.name}</CardTitle>
                 <div class="text-sm text-neutral-600 mt-1">{agent.role}</div>
               </div>
-              <Badge 
-                client:only="react"
-                variant={agent.enabled ? 'default' : 'secondary'}
+              <span 
+                class={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${agent.enabled ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-700'}`}
               >
                 {agent.enabled ? 'Enabled' : 'Disabled'}
-              </Badge>
+              </span>
             </div>
           </CardHeader>
           <CardContent class="pt-0">

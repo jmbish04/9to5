@@ -1,9 +1,12 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { Textarea } from '../../components/ui/textarea';
-import { Input } from '../../components/ui/input';
-import { Button } from '../../components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+// import { Textarea } from '../../components/ui/textarea';
+// import { Input } from '../../components/ui/input';
+import Button from '../../components/ui/button.astro';
+import Card from '../../components/ui/card.astro';
+import CardHeader from '../../components/ui/card-header.astro';
+import CardTitle from '../../components/ui/card-title.astro';
+import CardContent from '../../components/ui/card-content.astro';
 import {
   getApplicantHistory,
   submitApplicantHistory,
@@ -162,8 +165,12 @@ const { data: histData, error: histErr } = await (async () => {
           
           {/* Text Input Section */}
           <div class="space-y-2">
-            <label class="text-xs font-medium">Content</label>
-            <Textarea id="historyContent" placeholder="Paste resume, markdown notes, bullets…" />
+            <label class="text-xs font-medium" for="historyContent">Content</label>
+            <textarea
+              id="historyContent"
+              placeholder="Paste resume, markdown notes, bullets…"
+              class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            ></textarea>
           </div>
 
           {/* File Upload Section */}
@@ -181,7 +188,8 @@ const { data: histData, error: histErr } = await (async () => {
                   if (file) {
                     label.textContent = 'File selected: ' + file.name;
                     // Clear textarea when file is selected
-                    document.getElementById('historyContent').value = '';
+                    const t = document.getElementById('historyContent');
+                    if (t) t.value = '';
                   } else {
                     label.textContent = 'Click to upload or drag and drop';
                   }
@@ -211,8 +219,8 @@ const { data: histData, error: histErr } = await (async () => {
               <Button
                 client:only="react"
                 onClick={async () => {
-                  const textContent = (document.getElementById('historyContent') as HTMLTextAreaElement).value || '';
-                  const fileInput = document.getElementById('historyFile') as HTMLInputElement;
+                  const textContent = (document.getElementById('historyContent') as HTMLTextAreaElement)?.value || '';
+                  const fileInput = document.getElementById('historyFile') as HTMLInputElement | null;
                   const file = fileInput?.files?.[0];
                   const contentType = (document.getElementById('historyType') as HTMLSelectElement).value as any;
                   
@@ -220,10 +228,8 @@ const { data: histData, error: histErr } = await (async () => {
                   let finalContentType = contentType;
                   
                   if (file) {
-                    // Handle file upload
                     try {
                       if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-                        // For PDFs, we'll send as base64
                         const reader = new FileReader();
                         content = await new Promise((resolve, reject) => {
                           reader.onload = () => resolve(reader.result as string);
@@ -232,14 +238,12 @@ const { data: histData, error: histErr } = await (async () => {
                         });
                         finalContentType = 'application/pdf';
                       } else {
-                        // For text files, read as text
                         const reader = new FileReader();
                         content = await new Promise((resolve, reject) => {
                           reader.onload = () => resolve(reader.result as string);
                           reader.onerror = reject;
                           reader.readAsText(file);
                         });
-                        // Auto-detect content type for text files
                         if (file.name.endsWith('.md')) finalContentType = 'text/markdown';
                         else if (file.name.endsWith('.json')) finalContentType = 'application/json';
                         else finalContentType = 'text/plain';
@@ -261,7 +265,7 @@ const { data: histData, error: histErr } = await (async () => {
                       raw_content: content, 
                       content_type: finalContentType 
                     });
-                    alert(`Submitted successfully! Entries processed: ${res.entries_processed ?? 0}`);
+                    alert(\`Submitted successfully! Entries processed: \${res.entries_processed ?? 0}\`);
                     location.reload();
                   } catch (e) {
                     alert('Failed to submit history. Please check the content and try again.');
@@ -282,15 +286,15 @@ const { data: histData, error: histErr } = await (async () => {
           <section class="space-y-2">
             <div class="text-sm font-medium">Cover Letter</div>
             <label class="text-xs">Job Title</label>
-            <Input id="cl_job_title" placeholder="Head of Data" />
+            <input type="text" id="cl_job_title" placeholder="Head of Data" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Company Name</label>
-            <Input id="cl_company_name" placeholder="Acme Corp" />
+            <input type="text" id="cl_company_name" placeholder="Acme Corp" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Hiring Manager (optional)</label>
-            <Input id="cl_hm" placeholder="Jane Doe" />
+            <input type="text" id="cl_hm" placeholder="Jane Doe" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Job Description (paste)</label>
-            <Textarea id="cl_jd" />
+            <textarea id="cl_jd" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             <label class="text-xs">Your Career Summary</label>
-            <Textarea id="cl_summary" placeholder="2–3 paragraphs or bullets summarizing your background" />
+            <textarea id="cl_summary" placeholder="2–3 paragraphs or bullets summarizing your background" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             <div class="flex gap-2">
               <Button
                 client:only="react"
@@ -342,7 +346,6 @@ const { data: histData, error: histErr } = await (async () => {
                     return;
                   }
                   
-                  // Create a printable version
                   const printContent = `
                     <!DOCTYPE html>
                     <html>
@@ -375,13 +378,13 @@ const { data: histData, error: histErr } = await (async () => {
           <section class="space-y-2">
             <div class="text-sm font-medium">Resume Optimizer</div>
             <label class="text-xs">Job Title</label>
-            <Input id="re_job_title" placeholder="Head of Data" />
+            <input type="text" id="re_job_title" placeholder="Head of Data" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Company Name</label>
-            <Input id="re_company_name" placeholder="Acme Corp" />
+            <input type="text" id="re_company_name" placeholder="Acme Corp" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Job Description (paste)</label>
-            <Textarea id="re_jd" />
+            <textarea id="re_jd" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             <label class="text-xs">Your Career Summary</label>
-            <Textarea id="re_summary" placeholder="Key highlights to emphasize" />
+            <textarea id="re_summary" placeholder="Key highlights to emphasize" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             <div class="flex gap-2">
               <Button
                 client:only="react"
@@ -438,7 +441,6 @@ const { data: histData, error: histErr } = await (async () => {
                     return;
                   }
                   
-                  // Create a printable version
                   const printContent = \`
                     <!DOCTYPE html>
                     <html>
