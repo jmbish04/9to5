@@ -1,18 +1,19 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { listTasks, listAgents } from '../../lib/api';
-// import { Badge } from '../../components/ui/badge';
-import Button from '../../components/ui/button.astro';
-import Card from '../../components/ui/card.astro';
-import CardHeader from '../../components/ui/card-header.astro';
-import CardTitle from '../../components/ui/card-title.astro';
-import CardContent from '../../components/ui/card-content.astro';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { CreateTaskButton, EditTaskButton } from '../../components/admin/task-form';
+import { DeleteConfirmationButton } from '../../components/admin/delete-confirmation';
 
 let tasks = [];
 let agents = [];
 let loadError = null;
+let apiToken = '';
 try {
   [tasks, agents] = await Promise.all([listTasks(), listAgents()]);
+  apiToken = Astro.locals?.runtime?.env?.API_TOKEN || '';
 } catch (e) {
   loadError = e;
 }
@@ -23,7 +24,7 @@ const agentNames = new Map(agents.map(agent => [agent.id, agent.name]));
 <AdminLayout>
   <div class="mb-4 flex items-center justify-between">
     <h1 class="text-2xl font-bold">Tasks</h1>
-    <Button disabled title="Create functionality coming in Milestone 2">Create Task</Button>
+    <CreateTaskButton apiToken={apiToken} client:load />
   </div>
 
   {loadError ? (
@@ -72,8 +73,8 @@ const agentNames = new Map(agents.map(agent => [agent.id, agent.name]));
                 </div>
               )}
               <div class="flex gap-2">
-                <Button variant="outline" size="sm" disabled>Edit</Button>
-                <Button variant="outline" size="sm" disabled>Delete</Button>
+                <EditTaskButton apiToken={apiToken} task={task} client:load />
+                <DeleteConfirmationButton apiToken={apiToken} type="task" id={task.id} name={task.name} client:load />
               </div>
             </div>
           </CardContent>

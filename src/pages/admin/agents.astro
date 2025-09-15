@@ -1,18 +1,19 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { listAgents } from '../../lib/api';
-// import { Badge } from '../../components/ui/badge';
-import Button from '../../components/ui/button.astro';
-import Card from '../../components/ui/card.astro';
-import CardHeader from '../../components/ui/card-header.astro';
-import CardTitle from '../../components/ui/card-title.astro';
-import CardContent from '../../components/ui/card-content.astro';
-// import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { CreateAgentButton, EditAgentButton } from '../../components/admin/agent-form';
+import { DeleteConfirmationButton } from '../../components/admin/delete-confirmation';
 
 let agents = [];
 let loadError = null;
+let apiToken = '';
 try {
   agents = await listAgents();
+  // Get API token from environment or request context
+  apiToken = Astro.locals?.runtime?.env?.API_TOKEN || '';
 } catch (e) {
   loadError = e;
 }
@@ -20,7 +21,7 @@ try {
 <AdminLayout>
   <div class="mb-4 flex items-center justify-between">
     <h1 class="text-2xl font-bold">Agents</h1>
-    <Button disabled title="Create functionality coming in Milestone 2">Create Agent</Button>
+    <CreateAgentButton apiToken={apiToken} client:load />
   </div>
 
   {loadError ? (
@@ -62,8 +63,8 @@ try {
                 <div>Max Tokens: {agent.max_tokens || 4000}</div>
               </div>
               <div class="flex gap-2">
-                <Button variant="outline" size="sm" disabled>Edit</Button>
-                <Button variant="outline" size="sm" disabled>Delete</Button>
+                <EditAgentButton apiToken={apiToken} agent={agent} client:load />
+                <DeleteConfirmationButton apiToken={apiToken} type="agent" id={agent.id} name={agent.name} client:load />
               </div>
             </div>
           </CardContent>

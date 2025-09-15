@@ -1,76 +1,196 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { listJobs } from '../../lib/api';
+import InterestSignals from '../../components/admin/InterestSignals';
+
+// Get query params from URL
+const { searchParams } = Astro.url;
+const limit = parseInt(searchParams.get('limit') || '25');
+const offset = parseInt(searchParams.get('offset') || '0');
+const status = searchParams.get('status') || '';
+const source = searchParams.get('source') || '';
 
 let jobsData = null;
 let loadError = null;
 try {
-  jobsData = await listJobs({ limit: 25, offset: 0 });
+  jobsData = await listJobs({ limit, offset, status, source });
 } catch (e) {
-  loadError = e;
+  loadError = e;
 }
 
 const jobs = jobsData?.jobs || [];
+const total = jobsData?.total || 0;
+const totalPages = Math.ceil(total / limit);
+const currentPage = Math.floor(offset / limit) + 1;
+
 ---
 <AdminLayout>
-  <div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Jobs</h1>
-    <p class="mt-1 text-sm text-gray-600">Job listings and monitoring</p>
-  </div>
+  <div class="mb-4">
+    <h1 class="text-2xl font-bold text-gray-900">Jobs</h1>
+    <p class="mt-1 text-sm text-gray-600">
+      Review, filter, and track all discovered job listings
+    </p>
+  </div>
 
-  <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow">
-    {loadError ? (
-      <div class="p-6 text-center text-red-600">
-        Failed to load jobs: {loadError.message}
-      </div>
-    ) : jobs.length === 0 ? (
-      <div class="p-6 text-center text-gray-500">
-        No jobs available.
-      </div>
-    ) : (
-      <table class="w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-              Job Title
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-              Company
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-              Status
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 bg-white">
-          {jobs.map((job) => (
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
-                  <a 
-                    href={"/admin/jobs/" + encodeURIComponent(job.id)}
-                    class="text-blue-600 hover:text-blue-900 hover:underline"
-                  >
-                    {job.title || 'Untitled Job'}
-                  </a>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {job.company || '—'}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class={"inline-flex px-2 py-1 text-xs font-semibold rounded-full " + (
-                  job.status === 'open' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                )}>
-                  {job.status || 'Unknown'}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    )}
-  </div>
+  <!-- Filters -->
+  <div class="mb-4 rounded-lg border border-gray-200 bg-white p-4">
+    <form class="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div>
+        <label for="status-filter" class="block text-xs font-medium text-gray-700">Status</label>
+        <select id="status-filter" name="status" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <option value="">All</option>
+          <option value="open" selected={status === 'open'}>Open</option>
+          <option value="closed" selected={status === 'closed'}>Closed</option>
+        </select>
+      </div>
+      <div>
+        <label for="source-filter" class="block text-xs font-medium text-gray-700">Source</label>
+        <select id="source-filter" name="source" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <option value="">All</option>
+          <option value="SCRAPED" selected={source === 'SCRAPED'}>Scraped</option>
+          <option value="EMAIL" selected={source === 'EMAIL'}>Email</option>
+          <option value="MANUAL" selected={source === 'MANUAL'}>Manual</option>
+        </select>
+      </div>
+      <div class="col-start-2 md:col-start-4 flex items-end">
+        <button type="submit" class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+          Apply Filters
+        </button>
+      </div>
+      
+      <!-- Hidden inputs to preserve other filters -->
+      <input type="hidden" name="limit" value={limit} />
+      <input type="hidden" name="offset" value="0" />
+    </form>
+  </div>
+
+  <!-- Results Summary -->
+  <div class="mb-4 flex items-center justify-between">
+    <div class="text-sm text-gray-700">
+      {loadError ? (
+        <span class="text-red-600">Error loading jobs</span>
+      ) : total > 0 ? (
+        <span>
+          Showing <span class="font-medium">{offset + 1}</span> to{' '}
+          <span class="font-medium">{Math.min(offset + limit, total)}</span> of{' '}
+          <span class="font-medium">{total}</span> jobs
+        </span>
+      ) : (
+        <span>No jobs found</span>
+      )}
+    </div>
+    
+    {total > 0 && (
+      <div class="text-sm text-gray-500">
+        Page {currentPage} of {totalPages}
+      </div>
+    )}
+  </div>
+
+  <!-- Jobs Table -->
+  <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow">
+    <table class="w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            Job Title
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            Company
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            Location
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            Employment Type
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            Status
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            Source
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            Interest
+          </th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 bg-white">
+        {loadError ? (
+          <tr>
+            <td colspan="7" class="px-6 py-12 text-center text-red-600">
+              <div class="text-sm">Failed to load jobs. Please try again.</div>
+            </td>
+          </tr>
+        ) : jobs.length === 0 ? (
+          <tr>
+            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+              <div class="text-sm">
+                {status || source ? 'No jobs found matching your filters.' : 'No jobs available.'}
+              </div>
+              {(status || source) && (
+                <a href="/admin/jobs" class="mt-2 inline-block text-sm text-blue-600 hover:text-blue-500">
+                  Clear all filters
+                </a>
+              )}
+            </td>
+          </tr>
+        ) : (
+          jobs.map((job) => (
+            <tr key={job.id} class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">
+                  <a
+                    href={"/admin/jobs/" + encodeURIComponent(job.id)}
+                    class="text-blue-600 hover:text-blue-900 hover:underline"
+                  >
+                    {job.title || 'Untitled Job'}
+                  </a>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {job.company || '—'}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                {job.location || '—'}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                {job.employment_type || '—'}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class={"inline-flex px-2 py-1 text-xs font-semibold rounded-full " + (
+                  job.status === 'open'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800'
+                )}>
+                  {job.status || 'Unknown'}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                {job.source ? (
+                  <span class={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    job.source === 'SCRAPED'
+                      ? 'bg-blue-100 text-blue-800'
+                      : job.source === 'EMAIL'
+                      ? 'bg-indigo-100 text-indigo-800'
+                      : job.source === 'MANUAL'
+                      ? 'bg-gray-100 text-gray-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`} aria-label={`Source: ${job.source}`}>
+                    {job.source}
+                  </span>
+                ) : (
+                  <span class="text-gray-400">—</span>
+                )}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <InterestSignals client:load jobId={job.id} />
+              </td>
+            </tr>
+          ))}
+        )
+      }
+      </tbody>
+    </table>
+  </div>
 </AdminLayout>
