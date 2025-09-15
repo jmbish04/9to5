@@ -1,13 +1,13 @@
-// Add Applicant & AI endpoints (Milestone 2)
-import type {
-  Job,
-  MonitoringStatus,
-  JobTrackingPayload,
-  ApplicantHistoryResponse,
-  CoverLetterResponse,
-  ResumeResponse,
-  JobRating
-} from './types/api';
+// Typed API client using generated OpenAPI types
+import type { paths, components, operations } from './types/openapi';
+
+// Type aliases for easier usage
+type Job = components['schemas']['Job'];
+type AgentConfig = components['schemas']['AgentConfig'];
+type TaskConfig = components['schemas']['TaskConfig'];
+type WorkflowConfig = components['schemas']['WorkflowConfig'];
+type MonitoringStatus = operations['getMonitoringStatus']['responses']['200']['content']['application/json'];
+type JobTrackingPayload = operations['getJobTracking']['responses']['200']['content']['application/json'];
 
 // Allow overriding the API base URL via environment variable. When unset,
 // requests will default to the same origin as the frontend.
@@ -109,21 +109,15 @@ export async function updateJobMonitoring(id: string, body: {
 
 /* ===== Applicant & AI endpoints ===== */
 
-export async function getApplicantHistory(userId: string): Promise<ApplicantHistoryResponse> {
-  return http<ApplicantHistoryResponse>(`/api/applicant/${encodeURIComponent(userId)}/history`);
+export async function getApplicantHistory(userId: string): Promise<operations['getJobHistory']['responses']['200']['content']['application/json']> {
+  return http(`/api/applicant/${encodeURIComponent(userId)}/history`);
 }
 
 export async function submitApplicantHistory(body: {
   user_id: string;
   raw_content: string;
   content_type?: 'text/plain' | 'text/markdown' | 'application/json';
-}): Promise<{
-  success: boolean;
-  submission_id: string;
-  applicant_id: string;
-  entries_processed: number;
-  entries: unknown[];
-}> {
+}): Promise<operations['submitJobHistory']['responses']['200']['content']['application/json']> {
   return http(`/api/applicant/history`, {
     method: 'POST',
     body: JSON.stringify(body)
@@ -136,8 +130,8 @@ export async function createCoverLetter(body: {
   job_description_text: string;
   candidate_career_summary: string;
   hiring_manager_name?: string;
-}): Promise<CoverLetterResponse> {
-  return http<CoverLetterResponse>(`/api/cover-letter`, {
+}): Promise<operations['generateCoverLetter']['responses']['200']['content']['application/json']> {
+  return http(`/api/cover-letter`, {
     method: 'POST',
     body: JSON.stringify(body)
   });
@@ -148,8 +142,8 @@ export async function createResume(body: {
   company_name: string;
   job_description_text: string;
   candidate_career_summary: string;
-}): Promise<ResumeResponse> {
-  return http<ResumeResponse>(`/api/resume`, {
+}): Promise<operations['generateResume']['responses']['200']['content']['application/json']> {
+  return http(`/api/resume`, {
     method: 'POST',
     body: JSON.stringify(body)
   });
@@ -158,10 +152,113 @@ export async function createResume(body: {
 export async function generateJobRating(body: {
   user_id: string;
   job_id: string;
-}): Promise<JobRating> {
-  return http<JobRating>(`/api/applicant/job-rating`, {
+}): Promise<components['schemas']['JobRating']> {
+  return http(`/api/applicant/job-rating`, {
     method: 'POST',
     body: JSON.stringify(body)
+  });
+}
+
+/* ===== Agents, Tasks, and Workflows endpoints ===== */
+
+export async function listAgents(params: { enabled?: boolean } = {}): Promise<AgentConfig[]> {
+  const qs = new URLSearchParams();
+  if (params.enabled !== undefined) qs.set('enabled', String(params.enabled));
+  const q = qs.toString();
+  return http<AgentConfig[]>(`/api/agents${q ? `?${q}` : ''}`);
+}
+
+export async function getAgent(id: string): Promise<AgentConfig> {
+  return http<AgentConfig>(`/api/agents/${encodeURIComponent(id)}`);
+}
+
+export async function createAgent(body: AgentConfig): Promise<AgentConfig> {
+  return http<AgentConfig>('/api/agents', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export async function updateAgent(id: string, body: AgentConfig): Promise<AgentConfig> {
+  return http<AgentConfig>(`/api/agents/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body)
+  });
+}
+
+export async function deleteAgent(id: string): Promise<void> {
+  return http<void>(`/api/agents/${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function listTasks(params: { enabled?: boolean; agent_id?: string } = {}): Promise<TaskConfig[]> {
+  const qs = new URLSearchParams();
+  if (params.enabled !== undefined) qs.set('enabled', String(params.enabled));
+  if (params.agent_id) qs.set('agent_id', params.agent_id);
+  const q = qs.toString();
+  return http<TaskConfig[]>(`/api/tasks${q ? `?${q}` : ''}`);
+}
+
+export async function getTask(id: string): Promise<TaskConfig> {
+  return http<TaskConfig>(`/api/tasks/${encodeURIComponent(id)}`);
+}
+
+export async function createTask(body: TaskConfig): Promise<TaskConfig> {
+  return http<TaskConfig>('/api/tasks', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export async function updateTask(id: string, body: TaskConfig): Promise<TaskConfig> {
+  return http<TaskConfig>(`/api/tasks/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body)
+  });
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  return http<void>(`/api/tasks/${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function listWorkflows(params: { enabled?: boolean } = {}): Promise<WorkflowConfig[]> {
+  const qs = new URLSearchParams();
+  if (params.enabled !== undefined) qs.set('enabled', String(params.enabled));
+  const q = qs.toString();
+  return http<WorkflowConfig[]>(`/api/workflows${q ? `?${q}` : ''}`);
+}
+
+export async function getWorkflow(id: string): Promise<WorkflowConfig> {
+  return http<WorkflowConfig>(`/api/workflows/${encodeURIComponent(id)}`);
+}
+
+export async function createWorkflow(body: WorkflowConfig): Promise<WorkflowConfig> {
+  return http<WorkflowConfig>('/api/workflows', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+}
+
+export async function updateWorkflow(id: string, body: WorkflowConfig): Promise<WorkflowConfig> {
+  return http<WorkflowConfig>(`/api/workflows/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body)
+  });
+}
+
+export async function deleteWorkflow(id: string): Promise<void> {
+  return http<void>(`/api/workflows/${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function executeWorkflow(id: string, body?: { context?: Record<string, any> }): Promise<operations['executeWorkflow']['responses']['200']['content']['application/json']> {
+  return http(`/api/workflows/${encodeURIComponent(id)}/execute`, {
+    method: 'POST',
+    body: body ? JSON.stringify(body) : undefined
   });
 }
 
