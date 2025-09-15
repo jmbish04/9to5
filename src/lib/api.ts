@@ -1,6 +1,13 @@
 // Typed API client using generated OpenAPI types
 import type { paths, components, operations } from './types/openapi';
 import { getApiBase } from './config';
+// Import legacy types for schemas that aren't fully defined in OpenAPI yet
+import type {
+  ApplicantProfile,
+  JobHistoryEntry,
+  JobHistorySubmission,
+} from './types/api';
+
 
 // Type aliases for easier usage
 type Job = components['schemas']['Job'];
@@ -13,14 +20,21 @@ type JobTrackingPayload = operations['getJobTracking']['responses']['200']['cont
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${getApiBase()}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers || {})
+    }
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    console.error('API error', res.status, path, text);
-    throw new Error(`API ${res.status} ${path}`);
+    console.error('API error', res.status, path, text);
+    throw new Error(`${res.status} ${res.statusText} :: ${text}`.slice(0, 2048));
   }
-  return res.json() as Promise<T>;
+  // some endpoints may return empty
+  if (res.status === 204) return undefined as unknown as T;
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return (await res.json()) as T;
+  return (await res.text()) as unknown as T;
 }
 
 export function validateApiTokenResponse(
