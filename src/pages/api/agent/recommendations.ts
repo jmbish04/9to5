@@ -1,6 +1,13 @@
+// /api/agent/recommendations.ts
+import type { APIRoute } from 'astro';
 import { validateApiTokenResponse } from '@/lib/api';
 import { AgentOrchestrator } from '@/lib/ai/orchestrator';
 import { getAgentsConfig } from '@/lib/ai/config';
+
+const JSON_HEADERS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+};
 
 const getOrchestrator = () => {
   const env = process.env.NODE_ENV || 'development';
@@ -8,58 +15,68 @@ const getOrchestrator = () => {
   return new AgentOrchestrator(configs);
 };
 
-export async function GET({ locals, request }: { locals: any; request: Request }) {
-  const { API_TOKEN } = locals.runtime.env as { API_TOKEN: string };
-  const invalid = await validateApiTokenResponse(request, API_TOKEN);
-  if (invalid) return invalid;
+export const GET: APIRoute = async ({ locals, request, url }) => {
+  const API_TOKEN = (locals as any)?.runtime?.env?.API_TOKEN as string | undefined;
+
+  // API token validation
+  const invalid = await validateApiTokenResponse(request, API_TOKEN as string);
+  if (invalid) {
+    // ensure CORS on the validation response as well
+    return new Response(await invalid.text(), {
+      status: invalid.status,
+      headers: { ...Object.fromEntries(invalid.headers), ...JSON_HEADERS },
+    });
+  }
 
   try {
-    const url = new URL(request.url);
     const user_id = url.searchParams.get('user_id');
-    const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+    const limit = Number.parseInt(url.searchParams.get('limit') || '20', 10);
 
-    if (!user_id) {
-      return Response.json(
-        { error: { code: 'missing_params', message: 'user_id is required' } },
-        { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+    if (!user_id || Number.isNaN(limit) || limit <= 0) {
+      return new Response(
+        JSON.stringify({
+          error: { code: 'missing_or_invalid_params', message: 'user_id is required and limit must be > 0' },
+        }),
+        { status: 400, headers: JSON_HEADERS },
       );
     }
 
     const orchestrator = getOrchestrator();
-    
-    // Create agent request for personalized recommendations
+
     const agentRequest = {
       user_id,
-      request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      request_id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
       agent_name: 'job_discovery',
       payload: {
         type: 'recommendations',
-        payload: { user_id, limit }
-      }
+        payload: { user_id, limit },
+      },
     };
-    
-    const response = await orchestrator.processRequest(agentRequest);
 
-    if (response.status === 'error') {
-      return Response.json(
-        { error: response.error },
-        { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } }
-      );
+    const response = await orchestrator.processRequest(agentRequest as any);
+
+    if (response?.status === 'error') {
+      return new Response(JSON.stringify({ error: response.error }), {
+        status: 500,
+        headers: JSON_HEADERS,
+      });
     }
 
-    return Response.json(
-      {
+    return new Response(
+      JSON.stringify({
         request_id: response.request_id,
         recommendations: response.data,
-        metadata: response.metadata
-      },
-      { headers: { 'Access-Control-Allow-Origin': '*' } }
+        metadata: response.metadata,
+      }),
+      { status: 200, headers: JSON_HEADERS },
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error('GET /api/agent/recommendations failed', err);
-    return Response.json(
-      { error: { code: 'internal_error', message: 'Failed to get recommendations' } },
-      { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } }
+    return new Response(
+      JSON.stringify({
+        error: { code: 'internal_error', message: 'Failed to get recommendations' },
+      }),
+      { status: 500, headers: JSON_HEADERS },
     );
   }
-}
+};

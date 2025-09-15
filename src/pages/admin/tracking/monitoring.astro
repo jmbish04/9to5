@@ -1,0 +1,142 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import Card from '../../../components/ui/card.astro';
+import CardHeader from '../../../components/ui/card-header.astro';
+import CardTitle from '../../../components/ui/card-title.astro';
+import CardContent from '../../../components/ui/card-content.astro';
+import Button from '../../../components/ui/button.astro';
+
+// Real-time tracking and monitoring dashboard
+---
+
+<AdminLayout>
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Real-time Job Tracking & Monitoring</h1>
+    <p class="mt-1 text-sm text-gray-600">Monitor job changes and track application progress in real-time</p>
+  </div>
+
+  <!-- Monitoring Overview -->
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-6">
+    <Card>
+      <CardContent class="py-6">
+        <div class="flex items-center">
+          <div class="text-2xl font-bold text-green-600">24</div>
+          <div class="ml-2 text-sm text-gray-600">Jobs Monitored</div>
+        </div>
+      </CardContent>
+    </Card>
+    
+    <Card>
+      <CardContent class="py-6">
+        <div class="flex items-center">
+          <div class="text-2xl font-bold text-blue-600">8</div>
+          <div class="ml-2 text-sm text-gray-600">Changes Detected</div>
+        </div>
+      </CardContent>
+    </Card>
+    
+    <Card>
+      <CardContent class="py-6">
+        <div class="flex items-center">
+          <div class="text-2xl font-bold text-yellow-600">3</div>
+          <div class="ml-2 text-sm text-gray-600">Alerts Pending</div>
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+
+  <!-- Recent Changes -->
+  <Card class="mb-6">
+    <CardHeader>
+      <CardTitle>Recent Job Changes</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div class="space-y-4">
+        <div class="border-l-4 border-green-400 pl-4 py-2">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-medium">Senior React Developer - TechCorp</div>
+              <div class="text-sm text-gray-600">Salary range updated: $120k-$150k → $130k-$160k</div>
+            </div>
+            <div class="text-xs text-gray-500">2 hours ago</div>
+          </div>
+        </div>
+        
+        <div class="border-l-4 border-blue-400 pl-4 py-2">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-medium">Full Stack Engineer - StartupX</div>
+              <div class="text-sm text-gray-600">Job description updated with new requirements</div>
+            </div>
+            <div class="text-xs text-gray-500">4 hours ago</div>
+          </div>
+        </div>
+        
+        <div class="border-l-4 border-red-400 pl-4 py-2">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-medium">DevOps Engineer - CloudCo</div>
+              <div class="text-sm text-gray-600">Job status changed to 'No longer accepting applications'</div>
+            </div>
+            <div class="text-xs text-gray-500">6 hours ago</div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t">
+        <Button variant="outline" disabled>View All Changes</Button>
+      </div>
+    </CardContent>
+  </Card>
+
+  <!-- Active Monitoring -->
+  <Card>
+    <CardHeader>
+      <CardTitle>Active Monitoring Settings</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded">
+          <div>
+            <div class="font-medium">Email Notifications</div>
+            <div class="text-sm text-gray-600">Get notified when jobs change</div>
+          </div>
+          <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">
+            Enabled
+          </span>
+        </div>
+        
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded">
+          <div>
+            <div class="font-medium">Real-time Updates</div>
+            <div class="text-sm text-gray-600">Check for changes every hour</div>
+          </div>
+          <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">
+            Active
+          </span>
+        </div>
+        
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded">
+          <div>
+            <div class="font-medium">Change Detection</div>
+            <div class="text-sm text-gray-600">AI-powered change analysis</div>
+          </div>
+          <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800">
+            Enhanced
+          </span>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</AdminLayout>
+
+<script>
+  // Real-time updates (placeholder for WebSocket integration)
+  console.log('Real-time job tracking dashboard loaded');
+  
+  // In production, this would connect to WebSocket for real-time updates
+  // const ws = new WebSocket('ws://localhost:3000/tracking');
+  // ws.onmessage = (event) => {
+  //   const change = JSON.parse(event.data);
+  //   updateDashboard(change);
+  // };
+</script>

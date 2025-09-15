@@ -1,146 +1,153 @@
+---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
-import { Skeleton } from '../../components/ui/skeleton';
+import Card from '../../components/ui/card.astro';
+import CardHeader from '../../components/ui/card-header.astro';
+import CardTitle from '../../components/ui/card-title.astro';
+import CardContent from '../../components/ui/card-content.astro';
 import { fmtDateTime, getMonitoringStatus } from '../../lib/api';
-import MonitoringButton from '../../components/MonitoringButton';
 
 // Server-side data fetching using the shared API library
 const { data, error } = await (async () => {
-  try {
-    return { data: await getMonitoringStatus(), error: null };
-  } catch (e) {
-    console.error('Error fetching monitoring status:', e);
-    return { data: null, error: e };
-  }
+  try {
+    return { data: await getMonitoringStatus(), error: null };
+  } catch (e) {
+    console.error('Error fetching monitoring status:', e);
+    return { data: null, error: e };
+  }
 })();
 
 // A flag to determine if we have any data to show in the first card
 const hasData =
-  data &&
-  (data.last_run_at ||
-    data.next_scheduled_at ||
-    data.queued != null ||
-    (data.recent_counts && Object.keys(data.recent_counts).length));
+  data &&
+  (data.last_run_at ||
+    data.next_scheduled_at ||
+    data.queued != null ||
+    (data.recent_counts && Object.keys(data.recent_counts).length));
 
-// Pass the API token to the client-side button component
-const clientApiToken = import.meta.env.API_TOKEN || 'dev_token_123';
+const clientApiToken = Astro.locals.runtime.env.API_TOKEN;
 ---
-<AdminLayout>
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-    <Card>
-      <CardHeader><CardTitle>Monitoring Status</CardTitle></CardHeader>
-      <CardContent>
-        {
-          error ? (
-            <div class="text-sm text-red-700">
-              Failed to load status.
-              <button type="button" onclick="location.reload()" class="ml-2 underline">
-                Retry
-              </button>
-            </div>
-          ) : data ? (
-            hasData ? (
-              <div class="space-y-1 text-sm">
-                <div>
-                  <span class="font-medium">Last run:</span> {fmtDateTime(data.last_run_at)}
-                </div>
-                <div>
-                  <span class="font-medium">Next scheduled:</span> {fmtDateTime(data.next_scheduled_at)}
-                </div>
-                <div>
-                  <span class="font-medium">Queued:</span> {data.queued ?? 0}
-                </div>
-                {data.recent_counts && (
-                  <ul class="mt-2 space-y-1">
-                    {Object.entries(data.recent_counts).map(([k, v]) => (
-                      <li>
-                        {k}: {v}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : (
-              <div class="text-sm text-muted-foreground">No monitoring data.</div>
-            )
-          ) : (
-            <Skeleton class="h-16 w-full" />
-          )
-        }
-        <div class="mt-3">
-          <MonitoringButton apiToken={clientApiToken} client:load />
-        </div>
-      </CardContent>
-    </Card>
 
-    <Card class="lg:col-span-2">
-      <CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader>
-      <CardContent>
-        {data?.recent_activity?.length ? (
-          <table class="w-full text-sm">
-            <thead class="text-neutral-600">
-              <tr>
-                <th class="py-1 text-left">Date</th>
-                <th class="py-1 text-left">Checked</th>
-                <th class="py-1 text-left">Modified</th>
-                <th class="py-1 text-left">Closed</th>
-                <th class="py-1 text-left">Errors</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              {data.recent_activity.map(r => (
-                <tr>
-                  <td class="py-1">{r.tracking_date}</td>
-                  <td class="py-1">{r.jobs_checked}</td>
-                  <td class="py-1">{r.jobs_modified}</td>
-                  <td class="py-1">{r.jobs_closed}</td>
-                  <td class="py-1">{r.errors}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div class="text-sm text-neutral-500">No recent activity.</div>
-        )}
-      </CardContent>
-    </Card>
+<AdminLayout title="9to5 Scout Dashboard">
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <Card>
+      <CardHeader><CardTitle>Monitoring Status</CardTitle></CardHeader>
+      <CardContent>
+        {error && (
+          <div class="text-sm text-red-700">
+            Failed to load status.
+            <button type="button" onclick="location.reload()" class="ml-2 underline">
+              Retry
+            </button>
+          </div>
+        )}
+        
+        {!error && !data && (
+          <div class="h-16 w-full bg-gray-200 animate-pulse rounded"></div>
+        )}
 
-    <Card class="lg:col-span-3">
-      <CardHeader><CardTitle>Market Statistics</CardTitle></CardHeader>
-      <CardContent>
-        {data?.market_statistics?.length ? (
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="text-neutral-600">
-                <tr>
-                  <th class="py-1 text-left">Role</th>
-                  <th class="py-1 text-left">Location</th>
-                  <th class="py-1 text-left">Total</th>
-                  <th class="py-1 text-left">New</th>
-                  <th class="py-1 text-left">Closed</th>
-                  <th class="py-1 text-left">Avg Salary</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                {data.market_statistics.map(m => (
-                  <tr>
-                    <td class="py-1">{m.role || '—'}</td>
-                    <td class="py-1">{m.location || '—'}</td>
-                    <td class="py-1">{m.total_jobs ?? '—'}</td>
-                    <td class="py-1">{m.new_jobs ?? '—'}</td>
-                    <td class="py-1">{m.closed_jobs ?? '—'}</td>
-                    <td class="py-1">
-                      {(m.avg_salary_min ?? 0).toLocaleString()} – {(m.avg_salary_max ?? 0).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div class="text-sm text-neutral-500">No stats yet.</div>
-        )}
-      </CardContent>
-    </Card>
-  </div>
+        {!error && data && !hasData && (
+          <div class="text-sm text-muted-foreground">No monitoring data.</div>
+        )}
+
+        {!error && data && hasData && (
+          <div class="space-y-1 text-sm">
+            {data.last_run_at && (
+              <div>
+                <span class="font-medium">Last run:</span> {fmtDateTime(data.last_run_at)}
+              </div>
+            )}
+            {data.next_scheduled_at && (
+              <div>
+                <span class="font-medium">Next scheduled:</span> {fmtDateTime(data.next_scheduled_at)}
+              </div>
+            )}
+            <div>
+              <span class="font-medium">Queued:</span> {data.queued ?? 0}
+            </div>
+            {data.recent_counts && (
+              <ul class="mt-2 space-y-1">
+                {Object.entries(data.recent_counts).map(([k, v]) => (
+                  <li>
+                    {k}: {v}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+        
+        <div class="mt-3">
+          <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="alert('Monitoring button clicked')">Start Monitoring</button>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card class="lg:col-span-2">
+      <CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader>
+      <CardContent>
+        {data?.recent_activity?.length > 0 && (
+          <table class="w-full text-sm">
+            <thead class="text-neutral-600">
+              <tr>
+                <th class="py-1 text-left">Date</th>
+                <th class="py-1 text-left">Checked</th>
+                <th class="py-1 text-left">Modified</th>
+                <th class="py-1 text-left">Closed</th>
+                <th class="py-1 text-left">Errors</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              {data.recent_activity.map(r => (
+                <tr>
+                  <td class="py-1">{r.tracking_date}</td>
+                  <td class="py-1">{r.jobs_checked}</td>
+                  <td class="py-1">{r.jobs_modified}</td>
+                  <td class="py-1">{r.jobs_closed}</td>
+                  <td class="py-1">{r.errors}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {!data?.recent_activity?.length && (
+          <div class="text-sm text-neutral-500">No recent activity.</div>
+        )}
+      </CardContent>
+    </Card>
+
+    <Card class="lg:col-span-3">
+      <CardHeader><CardTitle>Market Statistics</CardTitle></CardHeader>
+      <CardContent>
+        {data?.market_statistics?.length > 0 && (
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="text-neutral-600">
+                <tr>
+                  <th class="py-1 text-left">Role</th>
+                  <th class="py-1 text-left">Location</th>
+                  <th class="py-1 text-left">Jobs</th>
+                  <th class="py-1 text-left">Avg Salary</th>
+                  <th class="py-1 text-left">Trend</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                {data.market_statistics.map(stat => (
+                  <tr>
+                    <td class="py-1">{stat.role}</td>
+                    <td class="py-1">{stat.location}</td>
+                    <td class="py-1">{stat.job_count}</td>
+                    <td class="py-1">{stat.avg_salary}</td>
+                    <td class="py-1">{stat.trend}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!data?.market_statistics?.length && (
+          <div class="text-sm text-neutral-500">No stats yet.</div>
+        )}
+      </CardContent>
+    </Card>
+  </div>
 </AdminLayout>

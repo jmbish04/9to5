@@ -4,91 +4,100 @@ import { listWorkflows, listTasks } from '../../lib/api';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { CreateWorkflowButton, EditWorkflowButton } from '../../components/admin/workflow-form';
+import { DeleteConfirmationButton } from '../../components/admin/delete-confirmation';
+import { WorkflowExecutionButton } from '../../components/admin/workflow-execution';
 
 let workflows = [];
 let tasks = [];
 let loadError = null;
+let apiToken = '';
 try {
-  [workflows, tasks] = await Promise.all([listWorkflows(), listTasks()]);
+  [workflows, tasks] = await Promise.all([listWorkflows(), listTasks()]);
+  apiToken = Astro.locals?.runtime?.env?.API_TOKEN || '';
 } catch (e) {
-  loadError = e;
+  loadError = e;
 }
 
 // Create a map of task names by ID for display
 const taskNames = new Map(tasks.map(task => [task.id, task.name]));
 ---
 <AdminLayout>
-  <div class="mb-4 flex items-center justify-between">
-    <h1 class="text-2xl font-bold">Workflows</h1>
-    <Button disabled title="Create functionality coming in Milestone 2">Create Workflow</Button>
-  </div>
+  <div class="mb-4 flex items-center justify-between">
+    <h1 class="text-2xl font-bold">Workflows</h1>
+    <CreateWorkflowButton apiToken={apiToken} client:load />
+  </div>
 
-  {loadError ? (
-    <Card>
-      <CardContent class="py-6">
-        <div class="text-sm text-red-700">Failed to load workflows: {loadError.message}</div>
-      </CardContent>
-    </Card>
-  ) : (
-    <div class="space-y-4">
-      {workflows.map((workflow) => (
-        <Card>
-          <CardHeader>
-            <div class="flex items-start justify-between">
-              <div>
-                <CardTitle class="text-base">{workflow.name}</CardTitle>
-                <div class="text-sm text-neutral-600 mt-1">
-                  {workflow.task_sequence.length} task{workflow.task_sequence.length !== 1 ? 's' : ''}
-                </div>
-              </div>
-              <div class="flex gap-2">
-                <Badge 
-                  client:only="react"
-                  variant={workflow.enabled ? 'default' : 'secondary'}
-                >
-                  {workflow.enabled ? 'Enabled' : 'Disabled'}
-                </Badge>
-                <Button variant="outline" size="sm" disabled>Execute</Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent class="pt-0">
-            <div class="space-y-3">
-              <div>
-                <div class="text-xs font-medium text-neutral-600 mb-1">Description</div>
-                <div class="text-sm">{workflow.description}</div>
-              </div>
-              <div>
-                <div class="text-xs font-medium text-neutral-600 mb-1">Task Sequence</div>
-                <div class="space-y-2">
-                  {workflow.task_sequence.map((taskId, index) => (
-                    <div class="flex items-center gap-2">
-                      <div class="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-100 text-xs font-medium">
-                        {index + 1}
-                      </div>
-                      <Badge variant="outline" class="text-xs">
-                        {taskNames.get(taskId) || taskId}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div class="flex gap-2">
-                <Button variant="outline" size="sm" disabled>Edit</Button>
-                <Button variant="outline" size="sm" disabled>Delete</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-      
-      {workflows.length === 0 && !loadError && (
-        <Card>
-          <CardContent class="py-8 text-center">
-            <div class="text-neutral-500">No workflows configured yet.</div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  )}
+  {loadError ? (
+    <Card>
+      <CardContent class="py-6">
+        <div class="text-sm text-red-700">Failed to load workflows: {loadError.message}</div>
+      </CardContent>
+    </Card>
+  ) : (
+    <div class="space-y-4">
+      {workflows.map((workflow) => (
+        <Card>
+          <CardHeader>
+            <div class="flex items-start justify-between">
+              <div>
+                <CardTitle class="text-base">{workflow.name}</CardTitle>
+                <div class="text-sm text-neutral-600 mt-1">
+                  {workflow.task_sequence.length} task{workflow.task_sequence.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+              <div class="flex gap-2">
+              <Badge variant={workflow.enabled ? 'success' : 'secondary'}>
+                {workflow.enabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+              {workflow.enabled && (
+                <WorkflowExecutionButton 
+                  apiToken={apiToken}
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  client:load 
+                />
+              )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent class="pt-0">
+            <div class="space-y-3">
+              <div>
+                <div class="text-xs font-medium text-neutral-600 mb-1">Description</div>
+                <div class="text-sm">{workflow.description}</div>
+              </div>
+              <div>
+                <div class="text-xs font-medium text-neutral-600 mb-1">Task Sequence</div>
+                <div class="space-y-2">
+                  {workflow.task_sequence.map((taskId, index) => (
+                    <div class="flex items-center gap-2">
+                      <div class="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-100 text-xs font-medium">
+                        {index + 1}
+                      </div>
+                      <Badge variant="outline" class="text-xs">
+                        {taskNames.get(taskId) || taskId}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <EditWorkflowButton apiToken={apiToken} workflow={workflow} client:load />
+                <DeleteConfirmationButton apiToken={apiToken} type="workflow" id={workflow.id} name={workflow.name} client:load />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      
+      {workflows.length === 0 && !loadError && (
+        <Card>
+          <CardContent class="py-8 text-center">
+            <div class="text-neutral-500">No workflows configured yet.</div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )}
 </AdminLayout>
