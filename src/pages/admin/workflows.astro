@@ -4,12 +4,17 @@ import { listWorkflows, listTasks } from '../../lib/api';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { CreateWorkflowButton, EditWorkflowButton } from '../../components/admin/workflow-form';
+import { DeleteConfirmationButton } from '../../components/admin/delete-confirmation';
+import { WorkflowExecutionButton } from '../../components/admin/workflow-execution';
 
 let workflows = [];
 let tasks = [];
 let loadError = null;
+let apiToken = '';
 try {
   [workflows, tasks] = await Promise.all([listWorkflows(), listTasks()]);
+  apiToken = Astro.locals?.runtime?.env?.API_TOKEN || '';
 } catch (e) {
   loadError = e;
 }
@@ -20,7 +25,7 @@ const taskNames = new Map(tasks.map(task => [task.id, task.name]));
 <AdminLayout>
   <div class="mb-4 flex items-center justify-between">
     <h1 class="text-2xl font-bold">Workflows</h1>
-    <Button disabled title="Create functionality coming in Milestone 2">Create Workflow</Button>
+    <CreateWorkflowButton apiToken={apiToken} client:load />
   </div>
 
   {loadError ? (
@@ -48,7 +53,14 @@ const taskNames = new Map(tasks.map(task => [task.id, task.name]));
                 >
                   {workflow.enabled ? 'Enabled' : 'Disabled'}
                 </Badge>
-                <Button variant="outline" size="sm" disabled>Execute</Button>
+                {workflow.enabled && (
+                  <WorkflowExecutionButton 
+                    apiToken={apiToken}
+                    workflowId={workflow.id}
+                    workflowName={workflow.name}
+                    client:load 
+                  />
+                )}
               </div>
             </div>
           </CardHeader>
@@ -74,8 +86,8 @@ const taskNames = new Map(tasks.map(task => [task.id, task.name]));
                 </div>
               </div>
               <div class="flex gap-2">
-                <Button variant="outline" size="sm" disabled>Edit</Button>
-                <Button variant="outline" size="sm" disabled>Delete</Button>
+                <EditWorkflowButton apiToken={apiToken} workflow={workflow} client:load />
+                <DeleteConfirmationButton apiToken={apiToken} type="workflow" id={workflow.id} name={workflow.name} client:load />
               </div>
             </div>
           </CardContent>
