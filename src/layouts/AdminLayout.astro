@@ -1,16 +1,29 @@
 ---
 import { AppShell } from '../components/app/AppShell';
+import { ThemeProvider } from '../components/theme-provider';
 const { } = Astro.props;
 ---
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>9to5-Scout Admin</title>
+    <meta name="description" content="9to5 Scout - AI-powered job discovery platform admin dashboard" />
+    <title>9to5 Scout Admin</title>
+    <script is:inline>
+      // Prevent flash of unstyled content by setting theme before render
+      (function() {
+        const theme = localStorage.getItem('ui-theme') || 'system';
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const currentTheme = theme === 'system' ? systemTheme : theme;
+        document.documentElement.classList.add(currentTheme);
+      })();
+    </script>
   </head>
   <body>
-    <AppShell client:only="react">
-      <slot />
-    </AppShell>
+    <ThemeProvider client:only="react" defaultTheme="system" storageKey="ui-theme">
+      <AppShell client:only="react">
+        <slot />
+      </AppShell>
+    </ThemeProvider>
   </body>
 </html>
