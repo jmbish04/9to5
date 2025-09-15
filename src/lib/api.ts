@@ -27,7 +27,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    console.error('API error', res.status, path, text);
+    console.error('API error', res.status, path, text);
     throw new Error(`${res.status} ${res.statusText} :: ${text}`.slice(0, 2048));
   }
   // some endpoints may return empty
@@ -87,14 +87,22 @@ export interface ListJobsParams {
   status?: 'open' | 'closed';
   source?: 'SCRAPED' | 'EMAIL' | 'MANUAL';
 }
-export async function listJobs(params: ListJobsParams = {}): Promise<Job[]> {
+
+export interface ListJobsResponse {
+  jobs: Job[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function listJobs(params: ListJobsParams = {}): Promise<ListJobsResponse> {
   const qs = new URLSearchParams();
   if (params.limit != null) qs.set('limit', String(params.limit));
   if (params.offset != null) qs.set('offset', String(params.offset));
   if (params.status) qs.set('status', params.status);
   if (params.source) qs.set('source', params.source);
   const q = qs.toString();
-  return req<Job[]>(`/api/jobs${q ? `?${q}` : ''}`);
+  return req<ListJobsResponse>(`/api/jobs${q ? `?${q}` : ''}`);
 }
 
 export async function getJob(id: string): Promise<Job> {
@@ -116,7 +124,7 @@ export async function updateJobMonitoring(id: string, body: {
 }
 
 export async function getSnapshotContent(jobId: string, snapshotId: string): Promise<string> {
-  return http<string>(`/api/jobs/${encodeURIComponent(jobId)}/snapshots/${encodeURIComponent(snapshotId)}/content`);
+  return req<string>(`/api/jobs/${encodeURIComponent(jobId)}/snapshots/${encodeURIComponent(snapshotId)}/content`);
 }
 
 /* ===== Applicant & AI endpoints ===== */
