@@ -1,0 +1,323 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+---
+<AdminLayout>
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">AI Job Discovery</h1>
+    <p class="mt-1 text-sm text-gray-600">Intelligent job search powered by AI agents</p>
+  </div>
+
+  <!-- Semantic Search Interface -->
+  <Card class="mb-6">
+    <CardHeader>
+      <CardTitle>Natural Language Job Search</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div class="space-y-4">
+        <div>
+          <label for="semantic-search" class="block text-sm font-medium text-gray-700 mb-2">
+            Describe your ideal job
+          </label>
+          <textarea
+            id="semantic-search"
+            rows="3"
+            placeholder="e.g., 'Remote frontend job with React, good work-life balance, and collaborative team'"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          ></textarea>
+        </div>
+        <div class="flex gap-2">
+          <Button id="search-btn">Search with AI</Button>
+          <Button variant="outline" id="filters-btn">Advanced Filters</Button>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+
+  <!-- Search Results -->
+  <div id="search-results" class="hidden">
+    <Card>
+      <CardHeader>
+        <CardTitle>AI-Powered Search Results</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div id="results-container">
+          <!-- Results will be populated by JavaScript -->
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+
+  <!-- Personalized Recommendations -->
+  <Card class="mb-6">
+    <CardHeader>
+      <CardTitle>Personalized Recommendations</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div id="recommendations-container">
+        <div class="text-center py-8">
+          <div class="text-gray-500">Loading personalized recommendations...</div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+
+  <!-- Job Fit Analysis -->
+  <Card>
+    <CardHeader>
+      <CardTitle>Job Fit Analysis</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div class="space-y-4">
+        <p class="text-sm text-gray-600">
+          Get AI-powered compatibility scoring for any job listing
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="job-id" class="block text-sm font-medium text-gray-700 mb-1">
+              Job ID
+            </label>
+            <input
+              type="text"
+              id="job-id"
+              placeholder="Enter job ID"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div class="flex items-end">
+            <Button id="analyze-fit-btn" class="w-full">Analyze Job Fit</Button>
+          </div>
+        </div>
+        <div id="fit-analysis-results" class="hidden mt-4">
+          <!-- Fit analysis results will be shown here -->
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</AdminLayout>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchBtn = document.getElementById('search-btn');
+  const searchInput = document.getElementById('semantic-search');
+  const resultsContainer = document.getElementById('search-results');
+  const recommendationsContainer = document.getElementById('recommendations-container');
+  const analyzeFitBtn = document.getElementById('analyze-fit-btn');
+  const jobIdInput = document.getElementById('job-id');
+  const fitAnalysisResults = document.getElementById('fit-analysis-results');
+  
+  // Load personalized recommendations on page load
+  loadRecommendations();
+  
+  // Semantic search functionality
+  searchBtn?.addEventListener('click', async function() {
+    const query = searchInput?.value.trim();
+    if (!query) {
+      alert('Please enter a job description');
+      return;
+    }
+    
+    try {
+      searchBtn.textContent = 'Searching...';
+      searchBtn.disabled = true;
+      
+      const response = await fetch('/api/agent/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: query,
+          filters: {},
+          user_id: 'demo-user',
+          context: {
+            user_preferences: {
+              remote_work: true,
+              work_life_balance: true
+            }
+          }
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        displaySearchResults(result.data);
+        resultsContainer?.classList.remove('hidden');
+      } else {
+        alert('Search failed: ' + result.error);
+      }
+      
+    } catch (error) {
+      alert('Error performing search: ' + error.message);
+    } finally {
+      searchBtn.textContent = 'Search with AI';
+      searchBtn.disabled = false;
+    }
+  });
+  
+  // Job fit analysis functionality
+  analyzeFitBtn?.addEventListener('click', async function() {
+    const jobId = jobIdInput?.value.trim();
+    if (!jobId) {
+      alert('Please enter a job ID');
+      return;
+    }
+    
+    try {
+      analyzeFitBtn.textContent = 'Analyzing...';
+      analyzeFitBtn.disabled = true;
+      
+      const response = await fetch('/api/applicant/job-rating', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          job_id: jobId,
+          user_profile: {
+            skills: ['React', 'TypeScript', 'JavaScript'],
+            experience_years: 3,
+            preferences: {
+              remote_work: true,
+              salary_min: 90000,
+              work_life_balance: true
+            }
+          }
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        displayFitAnalysis(result.data);
+        fitAnalysisResults?.classList.remove('hidden');
+      } else {
+        alert('Analysis failed: ' + result.error);
+      }
+      
+    } catch (error) {
+      alert('Error analyzing job fit: ' + error.message);
+    } finally {
+      analyzeFitBtn.textContent = 'Analyze Job Fit';
+      analyzeFitBtn.disabled = false;
+    }
+  });
+  
+  async function loadRecommendations() {
+    try {
+      const response = await fetch('/api/agent/recommendations?user_id=demo-user&limit=5');
+      const result = await response.json();
+      
+      if (result.success) {
+        displayRecommendations(result.data.recommendations);
+      } else {
+        recommendationsContainer.innerHTML = '<div class="text-red-500">Failed to load recommendations</div>';
+      }
+    } catch (error) {
+      recommendationsContainer.innerHTML = '<div class="text-red-500">Error loading recommendations</div>';
+    }
+  }
+  
+  function displaySearchResults(data) {
+    const container = document.getElementById('results-container');
+    if (!container) return;
+    
+    container.innerHTML = `
+      <div class="space-y-4">
+        <div class="text-sm text-gray-600">
+          Search completed in ${data.processing_time_ms || 'N/A'}ms • 
+          Query: "${data.search_query || 'N/A'}"
+        </div>
+        <div class="bg-blue-50 p-4 rounded-lg">
+          <h4 class="font-medium text-blue-900">AI Search Demo</h4>
+          <p class="text-sm text-blue-700 mt-1">
+            This is a demonstration of the AI-powered semantic search capability.
+            In production, this would return relevant job matches based on natural language processing.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+  
+  function displayRecommendations(recommendations) {
+    const container = document.getElementById('recommendations-container');
+    if (!container) return;
+    
+    const html = recommendations.map(job => `
+      <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+        <div class="flex justify-between items-start mb-2">
+          <h3 class="font-medium text-gray-900">${job.title}</h3>
+          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            ${job.fit_score}% match
+          </span>
+        </div>
+        <div class="text-sm text-gray-600 mb-2">
+          ${job.company} • ${job.location}
+        </div>
+        <div class="text-sm text-blue-600 mb-2">
+          $${job.salary_range.min.toLocaleString()} - $${job.salary_range.max.toLocaleString()}
+        </div>
+        <div class="text-sm text-gray-700">
+          ${job.recommendation_reason}
+        </div>
+      </div>
+    `).join('');
+    
+    container.innerHTML = `<div class="space-y-4">${html}</div>`;
+  }
+  
+  function displayFitAnalysis(analysis) {
+    const container = document.getElementById('fit-analysis-results');
+    if (!container) return;
+    
+    const breakdown = analysis.fit_breakdown;
+    const strengthsList = analysis.strengths.map(s => `<li class="text-sm text-gray-700">• ${s}</li>`).join('');
+    const growthList = analysis.areas_for_growth.map(g => `<li class="text-sm text-gray-700">• ${g}</li>`).join('');
+    
+    container.innerHTML = `
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+          <div class="text-center">
+            <div class="text-2xl font-bold text-blue-600">${analysis.overall_fit_score}%</div>
+            <div class="text-xs text-gray-600">Overall Fit</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold">${breakdown.skill_match}%</div>
+            <div class="text-xs text-gray-600">Skills</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold">${breakdown.experience_match}%</div>
+            <div class="text-xs text-gray-600">Experience</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold">${breakdown.salary_match}%</div>
+            <div class="text-xs text-gray-600">Salary</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold">${breakdown.culture_match}%</div>
+            <div class="text-xs text-gray-600">Culture</div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h5 class="font-medium text-green-800 mb-2">Strengths</h5>
+            <ul class="space-y-1">${strengthsList}</ul>
+          </div>
+          <div>
+            <h5 class="font-medium text-orange-800 mb-2">Growth Areas</h5>
+            <ul class="space-y-1">${growthList}</ul>
+          </div>
+        </div>
+        
+        <div class="mt-4 p-3 bg-blue-50 rounded-md">
+          <div class="font-medium text-blue-900">Recommendation</div>
+          <div class="text-sm text-blue-800">${analysis.recommendation}</div>
+        </div>
+      </div>
+    `;
+  }
+});
+</script>
