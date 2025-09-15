@@ -26,7 +26,8 @@ export async function GET({ locals, params, request }: { locals: any; params: { 
         job_id: s.job_id,
         tracking_date: s.tracking_date,
         status: 'checked',
-        snapshot_id: s.id
+        snapshot_id: s.id,
+        content_type: s.content_type || 'text/html'
       })),
       ...(changes.results || []).map((c: any) => ({
         id: c.id,
@@ -34,7 +35,8 @@ export async function GET({ locals, params, request }: { locals: any; params: { 
         tracking_date: c.tracking_date,
         status: 'changed',
         change_summary: c.field ? `${c.field} changed` : undefined,
-        snapshot_id: c.snapshot_id
+        snapshot_id: c.snapshot_id,
+        content_type: 'text/html'
       }))
     ].sort((a, b) => new Date(b.tracking_date).getTime() - new Date(a.tracking_date).getTime());
 
