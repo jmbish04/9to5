@@ -1,7 +1,16 @@
 {
   "extends": "astro/tsconfigs/strict",
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"],
+  "exclude": [
+    "dist",
+    "src/pages/api/**",
+    "src/workflows/**",
+    "src/lib/services/**",
+    "src/lib/types/**",
+    "src/lib/hooks/**",
+    "src/components/**",
+    "astro.config.mjs"
+  ],
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
