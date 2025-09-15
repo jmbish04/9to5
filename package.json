@@ -70,6 +70,7 @@
     "migrate:local": "pnpm wrangler d1 migrations apply JOB_SCRAPER_DB --local",
     "migrate:remote": "pnpm wrangler d1 migrations apply JOB_SCRAPER_DB --remote",
     "dev:smoke": "node scripts/dev-smoke.mjs",
-    "test": "node scripts/dev-smoke.mjs"
+    "test": "node scripts/dev-smoke.mjs",
+    "test:ai": "node scripts/test-ai-agents.mjs"
   }
 }
