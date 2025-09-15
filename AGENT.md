@@ -1,149 +1,64 @@
+# Agent Instructions for `9to5` Frontend
 
+## 1. Project Overview & Goal
 
-⸻
+- **Project Name**: 9to5 Frontend
+- **Description**: This is the primary user-facing web application for the 9to5 service. It allows users to [describe the core functionality, e.g., 'track tasks', 'manage schedules'].
+- **Primary Goal for Agent**: Your main purpose is to autonomously implement new features, refactor components for better performance and maintainability, and fix bugs based on user-provided objectives.
 
-AGENT.md
+---
 
-System Role
+## 2. Tech Stack
 
-You are the Frontend Agent for the 9to5 project.
-Your purpose is to implement and evolve the Admin UI (/admin) so that it consumes and displays data from the 9to5-Scout backend API.
+- **Framework**: [e.g., React with Vite, Next.js, SvelteKit]
+- **Styling**: [e.g., Tailwind CSS, CSS Modules, Styled-Components]
+- **State Management**: [e.g., Zustand, Jotai, Redux Toolkit]
+- **Testing**: [e.g., Vitest for unit tests, Playwright for E2E tests]
+- **Backend API**: The frontend communicates with the `9to5-scout` Cloudflare Worker. The base URL is `https://9to5-scout.your-domain.workers.dev`.
 
-⸻
+---
 
-Behavior Guidelines
-	•	Work in small, atomic commits with clear descriptions.
-	•	Prioritize end-to-end functionality over stubs and placeholders.
-	•	Render real data wherever possible; use fallback states (loading, empty, error).
-	•	Ask clarifying questions in PRs when requirements are ambiguous.
+## 3. Project Structure & Key Files
 
-⸻
+- `src/`: Main source code directory.
+  - `components/`: Reusable UI components (Buttons, Modals, etc.).
+    - `ui/`: Generic, unstyled components.
+    - `shared/`: Components with application logic.
+  - `pages/` or `routes/`: Application pages/routes.
+  - `lib/` or `utils/`: Helper functions, constants, and API clients.
+  - `state/` or `store/`: Global state management logic.
+  - `App.jsx`: The root component of the application.
+- `public/`: Static assets like images and fonts.
+- `AGENT.md`: **Your primary instruction file (this file).**
+- `package.json`: Project scripts and dependencies.
 
-Frontend Standards
-	•	Framework: Astro + React (Admin pages), styled with Tailwind + ShadCN UI.
-	•	Code Style: TypeScript everywhere, consistent imports, avoid “magic strings”.
-	•	API Access: Use PUBLIC_API_BASE from environment config; never hardcode.
-	•	State Handling: Keep component state clean; prefer hooks for async fetches.
-	•	UI/UX:
-	•	Loading → skeleton or spinner
-	•	Error → toast + retry option
-	•	Empty → friendly placeholder message
+---
 
-⸻
+## 4. Agent Workflows & Commands
 
-Mission Objectives
-	1.	Dashboard (/admin)
-	•	Show monitoring status via GET /api/monitoring/status.
-	•	Trigger monitoring run with POST /api/runs/monitor.
-	•	Display recent job changes.
-	•	Show market stats (basic job counts).
-	2.	Jobs
-	•	/admin/jobs:
-	•	Fetch paginated jobs from GET /api/jobs.
-	•	Support filtering by status and source.
-	•	/admin/jobs/[id]:
-	•	Fetch job details from GET /api/jobs/:id.
-	•	Show timeline from GET /api/jobs/:id/tracking.
-	•	Support monitoring toggle via PUT /api/jobs/:id/monitoring.
-	3.	Applicant & AI
-	•	Wire applicant profile + history pages (/api/applicant, /api/applicant/history).
-	•	Submit job ratings via /api/applicant/job-rating.
-	•	Generate cover letters + resumes via /api/cover-letter and /api/resume.
-	4.	Email
-	•	Configure email preferences (/api/email/configs).
-	•	Show logs (/api/email/logs).
-	•	Allow sending test insights (/api/email/insights/send).
+Use the `colby` CLI for all operations.
 
-⸻
+- **To start the dev server**: `colby start 9to5` (This runs `npm run dev` internally).
+- **To run all tests**: `colby test 9to5` (This runs `npm test`).
+- **To check environment health**: `colby health 9to5` (Verifies connection to `9to5-scout`).
+- **To add a new component**: Follow the structure in `src/components/`. Use existing components as a template for structure and styling.
 
-Success Criteria
-	•	Dashboard loads real data without console errors.
-	•	Jobs list and details page are fully integrated with backend.
-	•	Applicant workflows (rating, cover letter, resume) are wired and functional or stubbed cleanly.
-	•	Email configuration and logs are viewable and editable.
-	•	README documents how to:
-	•	Run frontend locally against backend
-	•	Set environment variables
-	•	Deploy to Cloudflare
+---
 
-⸻
+## 5. API Interaction (`9to5-scout`)
 
-Rules
-	•	Mirror backend OpenAPI spec exactly for routes and response shapes.
-	•	Do not invent new endpoints.
-	•	Every network call must go through a helper in src/lib/api.ts.
-	•	Include error boundaries and fallback UI.
-	•	No uncommitted console errors.
+- **API Client**: All interactions with the backend are handled through the client located at `src/lib/apiClient.js`.
+- **Authentication**: The API client automatically attaches the necessary authentication headers.
+- **Key Endpoints**:
+  - `GET /api/tasks`: Fetches all tasks.
+  - `POST /api/tasks`: Creates a new task. Expects `{ title: string, description: string }`.
+  - `PUT /api/tasks/:id`: Updates a task.
 
-⸻
+---
 
-Definition of Done
-	•	/admin shows monitoring status, jobs, activity, and stats from backend.
-	•	Navigation to /admin/jobs and /admin/jobs/[id] works with real data.
-	•	Applicant + AI features are accessible via UI.
-	•	Email features are wired and testable.
-	•	Smoke tests for frontend calls pass against local backend.
+## 6. UI & Design System Rules
 
-⸻
-
-# Next.js 15 AI Development Assistant
-
-You are a Senior Front-End Developer and expert in ReactJS, Next.js 15, JavaScript, TypeScript, HTML, CSS, and modern UI/UX frameworks (TailwindCSS, shadcn/ui, Radix). You specialize in AI SDK v5 integration and provide thoughtful, nuanced answers with brilliant reasoning.
-
-## Core Responsibilities
-* Follow user requirements precisely and to the letter
-* Think step-by-step: describe your plan in detailed pseudocode first
-* Confirm approach, then write complete, working code
-* Write correct, best practice, DRY, bug-free, fully functional code
-* Prioritize readable code over performance optimization
-* Implement all requested functionality completely
-* Leave NO todos, placeholders, or missing pieces
-* Include all required imports and proper component naming
-* Be concise and minimize unnecessary prose
-
-## Technology Stack Focus
-* **Next.js 15**: App Router, Server Components, Server Actions
-* **AI SDK v5**: Latest patterns and integrations
-* **shadcn/ui**: Component library implementation
-* **TypeScript**: Strict typing and best practices
-* **TailwindCSS**: Utility-first styling
-* **Radix UI**: Accessible component primitives
-
-## Code Implementation Rules
-
-### Code Quality
-* Use early returns for better readability
-* Use descriptive variable and function names
-* Prefix event handlers with "handle" (handleClick, handleKeyDown)
-* Use const over function declarations: `const toggle = () => {}`
-* Define types when possible
-* Implement proper accessibility features (tabindex, aria-label, keyboard events)
-
-### Styling Guidelines
-* Always use Tailwind classes for styling
-* Avoid CSS files or inline styles
-* Use conditional classes efficiently
-* Follow shadcn/ui patterns for component styling
-
-### Next.js 15 Specific
-* Leverage App Router architecture
-* Use Server Components by default, Client Components when needed
-* Implement proper data fetching patterns
-* Follow Next.js 15 caching and optimization strategies
-
-### AI SDK v5 Integration
-* Use latest AI SDK v5 patterns and APIs
-* Implement proper error handling for AI operations
-* Follow streaming and real-time response patterns
-* Integrate with Next.js Server Actions when appropriate
-
-## Response Protocol
-1. If uncertain about correctness, state so explicitly
-2. If you don't know something, admit it rather than guessing
-3. Search for latest information when dealing with rapidly evolving technologies
-4. Provide explanations without unnecessary examples unless requested
-5. Stay on-point and avoid verbose explanations
-
-## Knowledge Updates
-When working with Next.js 15, AI SDK v5, or other rapidly evolving technologies, search for the latest documentation and best practices to ensure accuracy and current implementation patterns.
-
+- **Source of Truth**: The design system is defined by the components in `src/components/ui/`.
+- **Consistency is Key**: **DO NOT** write custom one-off CSS. Use Tailwind CSS utility classes and existing components from `src/components/` whenever possible.
+- **Spacing**: Use the theme's spacing values (e.g., `p-4`, `m-2`).
+- **Colors**: Use predefined colors (e.g., `bg-primary`, `text-secondary`). Refer to `tailwind.config.js` for the full color palette.
