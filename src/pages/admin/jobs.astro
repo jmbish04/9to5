@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { listJobs } from '../../lib/api';
+import InterestSignals from '../../components/admin/InterestSignals';
 
 const url = new URL(Astro.request.url);
 const limit = Number(url.searchParams.get('limit') || 25);
@@ -146,18 +147,21 @@ function getSourceBadgeVariant(source: string) {
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
             Source
           </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            Interest
+          </th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 bg-white">
         {loadError ? (
           <tr>
-            <td colspan="6" class="px-6 py-12 text-center text-red-600">
+            <td colspan="7" class="px-6 py-12 text-center text-red-600">
               <div class="text-sm">Failed to load jobs. Please try again.</div>
             </td>
           </tr>
         ) : jobs.length === 0 ? (
           <tr>
-            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
               <div class="text-sm">
                 {status || source ? 'No jobs found matching your filters.' : 'No jobs available.'}
               </div>
@@ -218,6 +222,9 @@ function getSourceBadgeVariant(source: string) {
                 ) : (
                   <span class="text-gray-400">—</span>
                 )}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <InterestSignals client:load jobId={job.id} />
               </td>
             </tr>
           ))

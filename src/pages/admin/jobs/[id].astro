@@ -5,6 +5,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { SnapshotViewer } from '../../../components/admin/SnapshotViewer';
 import { MonitoringSettingsDialog } from '../../../components/admin/MonitoringSettingsDialog';
+import InterestSignals from '../../../components/admin/InterestSignals';
 
 const { id } = Astro.params;
 
@@ -52,10 +53,25 @@ const compressed = compress(tracking?.timeline || []);
   ) : (
     <>
       <div class="mb-4">
-        <div class="text-lg font-semibold">{job.title || 'Untitled'}</div>
-        <div class="text-sm text-neutral-600">{job.company || '—'} · {job.location || '—'} · {job.employment_type || '—'}</div>
-        <div class="mt-2">
-          {job.source ? <Badge client:only="react" variant={job.source === 'EMAIL' ? 'accent' : job.source === 'MANUAL' ? 'secondary' : 'info'}>{job.source}</Badge> : null}
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="text-lg font-semibold">{job.title || 'Untitled'}</div>
+            <div class="text-sm text-neutral-600">{job.company || '—'} · {job.location || '—'} · {job.employment_type || '—'}</div>
+            <div class="mt-2 flex items-center gap-2">
+              {job.source ? <Badge client:only="react" variant={job.source === 'EMAIL' ? 'accent' : job.source === 'MANUAL' ? 'secondary' : 'info'}>{job.source}</Badge> : null}
+              <InterestSignals client:load jobId={id} />
+            </div>
+          </div>
+          {job.url && (
+            <a 
+              href={job.url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="text-sm text-blue-600 hover:text-blue-900 underline ml-4"
+            >
+              View Original Job ↗
+            </a>
+          )}
         </div>
       </div>
 

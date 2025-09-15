@@ -1,0 +1,102 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import DiscoveryControls from '../../components/admin/DiscoveryControls';
+import MonitoringQueue from '../../components/admin/MonitoringQueue';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { getInterestCounts, useInterestSignals } from '../../components/admin/InterestSignals';
+
+// Pass the API token to the client-side components
+const clientApiToken = import.meta.env.API_TOKEN || 'dev_token_123';
+---
+<AdminLayout>
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Discovery Dashboard</h1>
+    <p class="mt-1 text-sm text-gray-600">
+      Control job discovery, monitor tracking queue, and manage your job interests
+    </p>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <!-- Discovery Controls -->
+    <div>
+      <DiscoveryControls 
+        client:load 
+        apiToken={clientApiToken}
+        onRunComplete={(result) => {
+          console.log('Run completed:', result);
+          // Refresh monitoring queue after successful run
+          setTimeout(() => window.location.reload(), 2000);
+        }}
+      />
+    </div>
+
+    <!-- Interest Signals Summary -->
+    <div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Interest Tracking</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-3">
+            <div class="text-sm text-muted-foreground">
+              Track your interest in jobs locally. Signals are stored in your browser and can be synced later.
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+              <div class="text-center">
+                <div class="text-lg font-semibold text-green-700" id="interested-count">-</div>
+                <div class="text-xs text-gray-600">Interested</div>
+              </div>
+              <div class="text-center">
+                <div class="text-lg font-semibold text-gray-700" id="not-now-count">-</div>
+                <div class="text-xs text-gray-600">Not Now</div>
+              </div>
+            </div>
+            
+            <div class="text-xs text-gray-500">
+              💡 Use the interest buttons on job listings to track your preferences
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+
+  <!-- Monitoring Queue - Full Width -->
+  <div class="mt-6">
+    <MonitoringQueue 
+      client:load 
+      apiToken={clientApiToken}
+      limit={20}
+    />
+  </div>
+
+  <script>
+    // Update interest counts from localStorage
+    function updateInterestCounts() {
+      try {
+        const signals = JSON.parse(localStorage.getItem('job_interest_signals') || '{}');
+        let interestedCount = 0;
+        let notNowCount = 0;
+        
+        Object.values(signals).forEach((signal) => {
+          if (signal.signal === 'interested') interestedCount++;
+          if (signal.signal === 'not_now') notNowCount++;
+        });
+        
+        document.getElementById('interested-count').textContent = interestedCount;
+        document.getElementById('not-now-count').textContent = notNowCount;
+      } catch (error) {
+        console.error('Failed to update interest counts:', error);
+        document.getElementById('interested-count').textContent = '0';
+        document.getElementById('not-now-count').textContent = '0';
+      }
+    }
+
+    // Update counts on page load
+    updateInterestCounts();
+    
+    // Listen for interest signal changes
+    window.addEventListener('interestSignalChanged', updateInterestCounts);
+  </script>
+</AdminLayout>
