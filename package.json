@@ -49,7 +49,7 @@
   "devDependencies": {
     "@types/qs": "^6.9.11",
     "openapi-typescript": "^6.7.0",
-    "wrangler": "^4.34.0"
+    "wrangler": "^4.37.0"
   },
   "scripts": {
     "astro": "astro",
