@@ -107,6 +107,10 @@ export async function updateJobMonitoring(id: string, body: {
   });
 }
 
+export async function getSnapshotContent(jobId: string, snapshotId: string): Promise<string> {
+  return http<string>(`/api/jobs/${encodeURIComponent(jobId)}/snapshots/${encodeURIComponent(snapshotId)}/content`);
+}
+
 /* ===== Applicant & AI endpoints ===== */
 
 export async function getApplicantHistory(userId: string): Promise<ApplicantHistoryResponse> {

@@ -1,9 +1,10 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import { getJob, getJobTracking, updateJobMonitoring, fmtDateTime } from '../../../lib/api';
+import { getJob, getJobTracking, fmtDateTime } from '../../../lib/api';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
+import { SnapshotViewer } from '../../../components/admin/SnapshotViewer';
+import { MonitoringSettingsDialog } from '../../../components/admin/MonitoringSettingsDialog';
 
 const { id } = Astro.params;
 
@@ -25,7 +26,7 @@ function compress(timeline) {
   let i = 0;
   while (i < timeline.length) {
     const start = timeline[i];
-    if (start.status !== 'checked' || !start.content_hash) {
+    if (start.status !== 'checked' || !start.snapshot_id) {
       out.push({ type: 'point', entry: start });
       i++;
       continue;
@@ -34,11 +35,11 @@ function compress(timeline) {
     while (
       j < timeline.length &&
       timeline[j].status === 'checked' &&
-      timeline[j].content_hash === start.content_hash
+      timeline[j].snapshot_id === start.snapshot_id
     ) j++;
     const end = timeline[j - 1];
     const days = Math.max(1, Math.ceil((new Date(end.tracking_date).getTime() - new Date(start.tracking_date).getTime()) / 86400000) + 1);
-    out.push({ type: 'stable', from: start, to: end, days });
+    out.push({ type: 'stable', from: start, to: end, days, snapshot_id: start.snapshot_id });
     i = j;
   }
   return out;
@@ -59,58 +60,86 @@ const compressed = compress(tracking?.timeline || []);
       </div>
 
       <section class="mb-6 rounded-lg border border-neutral-200 bg-white p-4">
-        <h3 class="mb-3 text-sm font-semibold">Monitoring Settings</h3>
-        <form
-          onsubmit="return false;"
-          class="grid max-w-md grid-cols-2 items-end gap-3"
-          id="monitoringForm"
-        >
-          <label class="col-span-2 flex items-center gap-2 text-sm">
-            <input type="checkbox" id="monEnabled" />
-            Daily monitoring enabled
-          </label>
-          <div>
-            <div class="mb-1 text-xs text-neutral-600">Frequency (hours)</div>
-            <Input id="monFreq" type="number" min="1" value="24" />
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold">Monitoring Settings</h3>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 text-sm text-neutral-600">
+              {job?.daily_monitoring_enabled ? (
+                <Badge variant="secondary">Enabled ({job.monitoring_frequency_hours || 24}h)</Badge>
+              ) : (
+                <Badge variant="outline">Disabled</Badge>
+              )}
+            </div>
+            <MonitoringSettingsDialog
+              client:load
+              job={job}
+              onUpdate={() => location.reload()}
+            />
           </div>
-          <div>
-            <Button
-              client:only="react"
-              onClick={async () => {
-                const enabled = (document.getElementById('monEnabled') as HTMLInputElement).checked;
-                const freq = Number((document.getElementById('monFreq') as HTMLInputElement).value || '24');
-                try {
-                  await updateJobMonitoring(String(id), { daily_monitoring_enabled: enabled, monitoring_frequency_hours: freq });
-                  alert('Monitoring updated');
-                  location.reload();
-                } catch (e) {
-                  alert('Failed to update monitoring');
-                }
-              }}
-            >Save Settings</Button>
-          </div>
-        </form>
+        </div>
+        <div class="text-sm text-neutral-600">
+          {job?.daily_monitoring_enabled 
+            ? `This job is monitored every ${job.monitoring_frequency_hours || 24} hours for changes.`
+            : 'Monitoring is currently disabled for this job.'
+          }
+        </div>
       </section>
 
       <section class="rounded-lg border border-neutral-200 bg-white p-4">
         <h3 class="mb-3 text-sm font-semibold">Tracking Timeline</h3>
         <div class="space-y-2">
-          {compressed.map((row) => (
+          {compressed.map((row, index) => (
             row.type === 'stable'
-              ? <div class="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm">
-                  Stable for {row.days} day(s): {row.from.tracking_date} → {row.to.tracking_date}
-                  <div class="text-xs text-neutral-600">hash {row.from.content_hash}</div>
+              ? <div class="rounded-md border border-neutral-200 bg-neutral-50 p-3">
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm">
+                      <div class="font-medium">Stable for {row.days} day(s)</div>
+                      <div class="text-xs text-neutral-600 mt-1">
+                        {fmtDateTime(row.from.tracking_date)} → {fmtDateTime(row.to.tracking_date)}
+                      </div>
+                    </div>
+                    {row.snapshot_id && (
+                      <div class="flex items-center gap-2">
+                        <SnapshotViewer
+                          client:load
+                          jobId={id}
+                          snapshotId={row.snapshot_id}
+                          contentType={row.from.content_type || 'text/html'}
+                          triggerText="View Snapshot"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              : <div class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
-                  <div class="font-medium">Event: {row.entry.status}</div>
-                  {row.entry.change_summary ? <div class="mt-1 text-xs">{row.entry.change_summary}</div> : null}
-                  <div class="mt-1 text-xs text-neutral-600">{fmtDateTime(row.entry.created_at)}</div>
+              : <div class="rounded-md border border-amber-200 bg-amber-50 p-3">
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm">
+                      <div class="font-medium">Event: {row.entry.status}</div>
+                      {row.entry.change_summary && (
+                        <div class="mt-1 text-xs">{row.entry.change_summary}</div>
+                      )}
+                      <div class="mt-1 text-xs text-neutral-600">
+                        {fmtDateTime(row.entry.tracking_date)}
+                      </div>
+                    </div>
+                    {row.entry.snapshot_id && (
+                      <div class="flex items-center gap-2">
+                        <SnapshotViewer
+                          client:load
+                          jobId={id}
+                          snapshotId={row.entry.snapshot_id}
+                          contentType={row.entry.content_type || 'text/html'}
+                          triggerText="View Snapshot"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
           ))}
         </div>
 
         <div class="mt-6 text-xs text-neutral-500">
-          Tip: snapshots & content viewer wire up in Milestone 2 (HTML/MD modal, PDF/PNG open-in-new-tab).
+          Snapshots can be viewed inline for HTML/Markdown content. PDF and PNG files open in new tabs.
         </div>
       </section>
     </>
