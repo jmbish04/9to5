@@ -2,8 +2,11 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { listWorkflows, listTasks } from '../../lib/api';
 import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import Button from '../../components/ui/button.astro';
+import Card from '../../components/ui/card.astro';
+import CardHeader from '../../components/ui/card-header.astro';
+import CardTitle from '../../components/ui/card-title.astro';
+import CardContent from '../../components/ui/card-content.astro';
 
 let workflows = [];
 let tasks = [];
