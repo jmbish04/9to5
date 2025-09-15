@@ -1,9 +1,10 @@
 {
   "name": "9to5",
-  "description": "Admin dashboard template built with Astro, shadcn/ui, and Cloudflare's developer stack",
+  "description": "Job board and recruitment SaaS platform built with Cloudflare Workers, D1, and Astro.",
   "private": true,
   "cloudflare": {
-    "label": "SaaS Admin Template",
+    "label": "SaaS Job Board Platform",
+    "summary": "A job board and recruitment SaaS platform built with Cloudflare Workers",
     "products": [
       "Workers",
       "D1"
@@ -50,25 +51,25 @@
   "devDependencies": {
     "@types/qs": "^6.9.11",
     "openapi-typescript": "^6.7.0",
-    "wrangler": "^4.37.0"
+    "wrangler": "4.37.0"
   },
   "scripts": {
     "astro": "astro",
     "build": "astro build && cp src/workflows/wrapper.js dist/index.js",
     "cf-typegen": "wrangler types",
-    "check": "npm run build && npm run wrangler:wrapper && wrangler deploy --dry-run",
+    "check": "pnpm run build && pnpm run wrangler:wrapper && wrangler deploy --dry-run",
     "db:migrate": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "deploy": "npm run wrangler:wrapper && wrangler deploy",
-    "dev": "npm run db:migrate && npm run build && npm run wrangler:wrapper && npx wrangler dev --port 4321",
-    "predeploy": "npm run db:migrate:remote",
-    "preview": "npm run build && npm run wrangler:wrapper && wrangler dev",
+    "deploy": "pnpm run wrangler:wrapper && wrangler deploy",
+    "dev": "pnpm run db:migrate && pnpm run build && pnpm run wrangler:wrapper && wrangler dev --port 4321",
+    "predeploy": "pnpm run db:migrate:remote",
+    "preview": "pnpm run build && pnpm run wrangler:wrapper && wrangler dev",
     "wrangler:wrapper": "cp src/workflows/wrapper.js dist/index.js",
     "generate-types": "wrangler types",
     "types:api": "openapi-typescript public/openapi.json -o src/lib/types/openapi.ts",
-    "typecheck": "npm run generate-types && tsc -p tsconfig.json",
-    "migrate:local": "pnpm wrangler d1 migrations apply JOB_SCRAPER_DB --local",
-    "migrate:remote": "pnpm wrangler d1 migrations apply JOB_SCRAPER_DB --remote",
+    "typecheck": "pnpm run generate-types && tsc -p tsconfig.json",
+    "migrate:local": "wrangler d1 migrations apply JOB_SCRAPER_DB --local",
+    "migrate:remote": "wrangler d1 migrations apply JOB_SCRAPER_DB --remote",
     "dev:smoke": "node scripts/dev-smoke.mjs",
     "test": "node scripts/dev-smoke.mjs",
     "test:ai": "node scripts/test-ai-agents.mjs"
@@ -79,5 +80,9 @@
       "sharp",
       "workerd"
     ]
-  }
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "packageManager": "pnpm@9.0.0"
 }
