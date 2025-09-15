@@ -72,5 +72,12 @@
     "dev:smoke": "node scripts/dev-smoke.mjs",
     "test": "node scripts/dev-smoke.mjs",
     "test:ai": "node scripts/test-ai-agents.mjs"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
   }
 }
