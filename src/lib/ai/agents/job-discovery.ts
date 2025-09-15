@@ -7,10 +7,18 @@ import type {
   AgentConfig 
 } from '../types';
 import { BaseAgent } from '../types';
+import { OpenAIService } from '../services/openai';
 
 export class JobDiscoveryAgent extends BaseAgent {
-  constructor(config: AgentConfig) {
+  private openaiService: OpenAIService | null = null;
+
+  constructor(config: AgentConfig & { openaiApiKey?: string }) {
     super(config);
+    
+    // Initialize OpenAI service if API key is available
+    if (config.openaiApiKey) {
+      this.openaiService = OpenAIService.createIfAvailable(config.openaiApiKey);
+    }
   }
 
   async execute(request: AgentRequest): Promise<AgentResponse> {
@@ -63,9 +71,12 @@ export class JobDiscoveryAgent extends BaseAgent {
   }
 
   async semanticSearch(query: JobSearchQuery): Promise<JobRecommendation> {
-    // Mock implementation - in real version, this would use OpenAI embeddings
-    // and vector similarity search against job database
+    // Use OpenAI for enhanced semantic search if available, otherwise use mock data
+    if (this.openaiService) {
+      return await this.semanticSearchWithAI(query);
+    }
     
+    // Mock implementation - fallback when OpenAI is not available
     const mockJobs: JobMatch[] = [
       {
         job_id: 'job-1',
@@ -97,6 +108,134 @@ export class JobDiscoveryAgent extends BaseAgent {
       suggested_filters: suggestedFilters,
       total_matches: mockJobs.length,
       confidence_score: 0.85
+    };
+  }
+
+  private async semanticSearchWithAI(query: JobSearchQuery): Promise<JobRecommendation> {
+    try {
+      // Use OpenAI to understand the search intent and extract key requirements
+      const analysisPrompt = `
+        Analyze this job search query and extract key information:
+        Query: "${query.query}"
+        
+        Extract:
+        1. Primary job roles/titles being sought
+        2. Required skills and technologies
+        3. Experience level preferences
+        4. Location preferences
+        5. Work arrangement preferences (remote, hybrid, onsite)
+        6. Salary expectations if mentioned
+        7. Company size/culture preferences
+        
+        Return as JSON with these fields: role, skills, experience_level, location_pref, work_arrangement, salary_range, company_culture.
+      `;
+
+      const response = await this.openaiService!.createChatCompletion(
+        this.config.model,
+        [
+          { role: 'system', content: 'You are an expert job search analyst. Extract structured information from natural language job search queries.' },
+          { role: 'user', content: analysisPrompt }
+        ],
+        { temperature: 0.3, max_tokens: 500 }
+      );
+
+      let searchAnalysis;
+      try {
+        const content = response.choices[0]?.message?.content;
+        if (content) {
+          searchAnalysis = JSON.parse(content);
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse OpenAI response, using fallback');
+        searchAnalysis = this.parseSearchIntentFallback(query.query);
+      }
+
+      // Generate AI-enhanced job matches
+      const aiGeneratedJobs = await this.generateJobMatchesWithAI(query, searchAnalysis);
+      
+      return {
+        jobs: aiGeneratedJobs,
+        search_intent: searchAnalysis.role || 'General job search',
+        suggested_filters: this.generateAISuggestedFilters(searchAnalysis),
+        total_matches: aiGeneratedJobs.length,
+        confidence_score: 0.92
+      };
+
+    } catch (error) {
+      console.warn('OpenAI semantic search failed, falling back to mock data:', error);
+      // Fall back to mock implementation if OpenAI fails
+      return this.semanticSearch(query);
+    }
+  }
+
+  private async generateJobMatchesWithAI(query: JobSearchQuery, analysis: any): Promise<JobMatch[]> {
+    try {
+      const jobGenerationPrompt = `
+        Based on this job search analysis, generate 3-5 realistic job matches:
+        ${JSON.stringify(analysis)}
+        
+        For each job, provide:
+        - job_id (string like "job-N")
+        - fit_score (number 1-100) 
+        - fit_explanation (string explaining why it's a good match)
+        - highlighted_skills (array of relevant skills)
+        - salary_match (number 1-100)
+        - location_match (number 1-100)
+        - culture_match (number 1-100)
+        
+        Return as JSON array of job objects.
+      `;
+
+      const response = await this.openaiService!.createChatCompletion(
+        this.config.model,
+        [
+          { role: 'system', content: 'Generate realistic job matches based on search analysis. Return valid JSON only.' },
+          { role: 'user', content: jobGenerationPrompt }
+        ],
+        { temperature: 0.5, max_tokens: 1000 }
+      );
+
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        const jobs = JSON.parse(content);
+        return Array.isArray(jobs) ? jobs : [jobs];
+      }
+    } catch (error) {
+      console.warn('Failed to generate AI job matches:', error);
+    }
+
+    // Fallback to mock jobs
+    return [
+      {
+        job_id: 'job-ai-1',
+        fit_score: 88,
+        fit_explanation: 'AI-enhanced match based on your search preferences',
+        highlighted_skills: analysis.skills?.slice(0, 3) || ['Technical Skills'],
+        salary_match: 85,
+        location_match: analysis.work_arrangement === 'remote' ? 100 : 80,
+        culture_match: 87
+      }
+    ];
+  }
+
+  private generateAISuggestedFilters(analysis: any): any {
+    return {
+      location: analysis.location_pref || null,
+      remote_ok: analysis.work_arrangement === 'remote',
+      experience_level: analysis.experience_level || null,
+      skills: analysis.skills || [],
+      salary_range: analysis.salary_range || null
+    };
+  }
+
+  private parseSearchIntentFallback(query: string): any {
+    // Simple keyword-based analysis as fallback
+    const lowerQuery = query.toLowerCase();
+    return {
+      role: lowerQuery.includes('senior') ? 'Senior Developer' : 
+            lowerQuery.includes('junior') ? 'Junior Developer' : 'Developer',
+      skills: ['JavaScript', 'React'],
+      work_arrangement: lowerQuery.includes('remote') ? 'remote' : 'hybrid'
     };
   }
 

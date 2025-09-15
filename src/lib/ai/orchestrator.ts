@@ -7,6 +7,8 @@ import type {
 import { BaseAgent } from './types';
 import { JobDiscoveryAgent } from './agents/job-discovery';
 import { ContentGenerationAgent } from './agents/content-generation';
+import { CareerCoachAgent } from './agents/career-coach';
+import { MarketIntelligenceAgent } from './agents/market-intelligence';
 
 export class AgentOrchestrator {
   private agents: Map<string, BaseAgent> = new Map();
@@ -27,10 +29,17 @@ export class AgentOrchestrator {
       this.agents.set('content_generation', new ContentGenerationAgent(configs.content_generation));
     }
     
-    // TODO: Add other agents as they are implemented
-    // - Career Coach Agent
-    // - Market Intelligence Agent
-    // - Application Assistant Agent
+    // Initialize Career Coach Agent
+    if (configs.career_coach) {
+      this.agents.set('career_coach', new CareerCoachAgent(configs.career_coach));
+    }
+    
+    // Initialize Market Intelligence Agent
+    if (configs.market_intelligence) {
+      this.agents.set('market_intelligence', new MarketIntelligenceAgent(configs.market_intelligence));
+    }
+    
+    // TODO: Add Application Assistant Agent when implemented
   }
   
   async processRequest(request: AgentRequest): Promise<AgentResponse> {
@@ -112,7 +121,7 @@ export class AgentOrchestrator {
   async healthCheck(): Promise<Map<string, AgentHealthStatus>> {
     const healthStatus = new Map<string, AgentHealthStatus>();
     
-    for (const [name, agent] of this.agents) {
+    for (const [name, agent] of Array.from(this.agents.entries())) {
       try {
         const startTime = Date.now();
         const isHealthy = await agent.healthCheck();
@@ -183,7 +192,7 @@ export class AgentOrchestrator {
   
   private isCriticalAgent(agentName: string): boolean {
     // Define which agents are critical for the workflow
-    const criticalAgents = ['job_discovery', 'content_generation'];
+    const criticalAgents = ['job_discovery', 'content_generation', 'career_coach', 'market_intelligence'];
     return criticalAgents.includes(agentName);
   }
   
@@ -256,6 +265,154 @@ export class AgentOrchestrator {
           job_description,
           target_keywords,
           optimization_focus: ['keywords', 'structure', 'achievements']
+        }
+      }
+    };
+  }
+
+  static createCareerAnalysisRequest(
+    user_id: string,
+    user_profile: any,
+    target_roles?: string[],
+    career_goals?: string[]
+  ): AgentRequest {
+    return {
+      user_id,
+      request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agent_name: 'career_coach',
+      payload: {
+        type: 'career_analysis',
+        payload: {
+          user_profile,
+          target_roles,
+          career_goals,
+          timeframe: '6 months'
+        }
+      }
+    };
+  }
+
+  static createSkillGapAnalysisRequest(
+    user_id: string,
+    user_skills: string[],
+    target_skills: string[],
+    job_id?: string
+  ): AgentRequest {
+    return {
+      user_id,
+      request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agent_name: 'career_coach',
+      payload: {
+        type: 'skill_gap_analysis',
+        payload: {
+          user_skills,
+          target_skills,
+          job_id
+        }
+      }
+    };
+  }
+
+  static createLearningPathRequest(
+    user_id: string,
+    current_skills: string[],
+    target_skills: string[],
+    timeframe: string = '3 months',
+    learning_style: 'visual' | 'hands-on' | 'theoretical' | 'balanced' = 'balanced'
+  ): AgentRequest {
+    return {
+      user_id,
+      request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agent_name: 'career_coach',
+      payload: {
+        type: 'learning_path',
+        payload: {
+          current_skills,
+          target_skills,
+          timeframe,
+          learning_style
+        }
+      }
+    };
+  }
+
+  static createMarketAnalysisRequest(
+    user_id: string,
+    role: string,
+    location: string,
+    timeframe: string = '6 months'
+  ): AgentRequest {
+    return {
+      user_id,
+      request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agent_name: 'market_intelligence',
+      payload: {
+        type: 'market_analysis',
+        payload: {
+          role,
+          location,
+          timeframe
+        }
+      }
+    };
+  }
+
+  static createSalaryAnalysisRequest(
+    user_id: string,
+    role: string,
+    location: string,
+    experience_years: number,
+    skills: string[]
+  ): AgentRequest {
+    return {
+      user_id,
+      request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agent_name: 'market_intelligence',
+      payload: {
+        type: 'salary_intelligence',
+        payload: {
+          role,
+          location,
+          experience_years,
+          skills
+        }
+      }
+    };
+  }
+
+  static createCompanyIntelligenceRequest(
+    user_id: string,
+    company_name: string,
+    metrics: string[] = ['hiring', 'growth', 'culture', 'salary']
+  ): AgentRequest {
+    return {
+      user_id,
+      request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agent_name: 'market_intelligence',
+      payload: {
+        type: 'company_intelligence',
+        payload: {
+          company_name,
+          metrics
+        }
+      }
+    };
+  }
+
+  static createSkillTrendsRequest(
+    user_id: string,
+    skills: string[],
+    timeframe: string = '12 months'
+  ): AgentRequest {
+    return {
+      user_id,
+      request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agent_name: 'market_intelligence',
+      payload: {
+        type: 'skill_trends',
+        payload: {
+          skills,
+          timeframe
         }
       }
     };

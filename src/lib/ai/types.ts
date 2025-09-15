@@ -125,6 +125,234 @@ export interface ContentGenerationResult {
   suggestions?: string[];
 }
 
+// Career Coach Agent Types
+export interface CareerAnalysisRequest {
+  user_profile: UserProfile;
+  target_roles?: string[];
+  career_goals?: string[];
+  timeframe?: string;
+}
+
+export interface SkillGapAnalysisRequest {
+  user_skills: string[];
+  target_skills: string[];
+  job_id?: string;
+  target_role?: string;
+}
+
+export interface LearningPathRequest {
+  current_skills: string[];
+  target_skills: string[];
+  timeframe: string;
+  learning_style: 'visual' | 'hands-on' | 'theoretical' | 'balanced';
+  availability_hours_per_week?: number;
+}
+
+export interface CareerCoachResult {
+  current_position_assessment?: {
+    strengths: string[];
+    areas_for_improvement: string[];
+    market_position: string;
+    experience_level: number;
+  };
+  career_opportunities?: Array<{
+    role: string;
+    growth_potential: 'low' | 'medium' | 'high' | 'very_high';
+    required_skills: string[];
+    time_to_achieve: string;
+    salary_range: string;
+  }>;
+  career_roadmap?: {
+    short_term: string[];
+    medium_term: string[];
+    long_term: string[];
+  };
+  skill_gap_analysis?: {
+    missing_skills: string[];
+    matching_skills: string[];
+    skill_match_percentage: number;
+    critical_gaps: string[];
+    nice_to_have_gaps: string[];
+  };
+  learning_path?: {
+    total_duration: string;
+    learning_style: string;
+    phases: Array<{
+      phase: string;
+      duration: string;
+      focus_areas: string[];
+      learning_activities: string[];
+    }>;
+    milestones: Array<{
+      week: number;
+      milestone: string;
+      validation: string;
+    }>;
+  };
+  learning_recommendations?: Array<{
+    skill: string;
+    learning_resources: Array<{
+      type: 'course' | 'certification' | 'practice' | 'book';
+      name: string;
+      provider: string;
+      duration: string;
+    }>;
+    estimated_learning_time: string;
+    priority: 'high' | 'medium' | 'low';
+  }>;
+  actionable_recommendations?: Array<{
+    category: 'skill_development' | 'networking' | 'experience' | 'education';
+    action: string;
+    priority: 'high' | 'medium' | 'low';
+    timeline: string;
+    impact: string;
+  }>;
+  salary_guidance?: {
+    current_market_rate: string;
+    negotiation_strategies: string[];
+    timing_recommendations: string;
+    market_trends: string;
+  };
+  interview_preparation?: {
+    common_questions: string[];
+    technical_topics: string[];
+    behavioral_scenarios: string[];
+    practice_recommendations: string[];
+  };
+  confidence_score: number;
+}
+
+// Market Intelligence Agent Types
+export interface MarketAnalysisRequest {
+  role?: string;
+  location?: string;
+  timeframe?: string;
+  skills?: string[];
+  experience_level?: string;
+}
+
+export interface SalaryAnalysisRequest {
+  role: string;
+  location: string;
+  experience_years: number;
+  skills: string[];
+  company_size?: 'startup' | 'mid-size' | 'enterprise';
+}
+
+export interface CompanyIntelligenceRequest {
+  company_name: string;
+  metrics?: ('hiring' | 'growth' | 'culture' | 'salary')[];
+}
+
+export interface SkillTrendsRequest {
+  skills: string[];
+  timeframe?: string;
+  location?: string;
+}
+
+export interface MarketIntelligenceResult {
+  market_overview?: {
+    job_demand: 'low' | 'moderate' | 'high' | 'very_high';
+    growth_rate: string;
+    market_size: string;
+    competition_level: 'low' | 'moderate' | 'high';
+    hiring_trends: string[];
+  };
+  salary_trends?: {
+    current_range: string;
+    median_salary: string;
+    salary_growth: string;
+    top_paying_locations: string[];
+    salary_by_experience: Record<string, string>;
+  };
+  salary_analysis?: {
+    base_salary_range: string;
+    recommended_ask: string;
+    skill_premiums: Array<{
+      skill: string;
+      premium_percentage: number;
+      premium_amount: string;
+    }>;
+    location_adjustment: string;
+    market_percentile: number;
+    negotiation_range: {
+      conservative: string;
+      target: string;
+      optimistic: string;
+    };
+  };
+  skill_demand?: {
+    most_requested: string[];
+    emerging_skills: string[];
+    declining_skills: string[];
+    skill_premiums: Record<string, string>;
+  };
+  skill_trends?: {
+    timeframe: string;
+    trend_data: Array<{
+      skill: string;
+      current_demand: number;
+      demand_change: string;
+      growth_trajectory: 'declining' | 'stable' | 'growing' | 'explosive';
+      job_postings_count: number;
+      average_salary_premium: string;
+      related_skills: string[];
+      industry_adoption: number;
+    }>;
+    emerging_technologies: string[];
+    declining_technologies: string[];
+  };
+  company_rankings?: Array<{
+    company: string;
+    hiring_health: 'poor' | 'fair' | 'good' | 'excellent';
+    avg_salary: string;
+    work_life_balance: number;
+    growth_opportunities: number;
+  }>;
+  company_intelligence?: {
+    company_name: string;
+    hiring_health: 'poor' | 'fair' | 'good' | 'excellent';
+    recent_funding?: string;
+    employee_growth: string;
+    glassdoor_rating: number;
+    work_life_balance: number;
+    career_opportunities: number;
+    compensation_benefits: number;
+    culture_values: number;
+    recent_news: string[];
+    interview_process: {
+      typical_rounds: number;
+      average_duration: string;
+      process_steps: string[];
+    };
+    salary_competitiveness: string;
+    benefits_highlights: string[];
+  };
+  geographic_analysis?: {
+    top_tech_hubs: Array<{
+      city: string;
+      job_count: number;
+      avg_salary: string;
+      cost_of_living_index: number;
+    }>;
+    remote_opportunities: {
+      percentage_remote: string;
+      hybrid_percentage: string;
+      in_office_percentage: string;
+      salary_impact: string;
+    };
+    relocation_recommendations: string[];
+  };
+  market_comparison?: {
+    vs_national_average: string;
+    vs_local_average: string;
+    vs_similar_roles: string;
+  };
+  market_predictions?: string[];
+  recommendations?: string[];
+  confidence_score: number;
+}
+
 // Agent Configuration Types
 export interface AgentConfig {
   name: string;
@@ -144,6 +372,7 @@ export interface AgentsConfig {
   career_coach: AgentConfig;
   content_generation: AgentConfig;
   market_intelligence: AgentConfig;
+  [key: string]: AgentConfig;
 }
 
 // Base Agent Interface
