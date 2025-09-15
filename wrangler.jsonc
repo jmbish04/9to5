@@ -16,7 +16,7 @@
   },
   "upload_source_maps": true,
   "vars": {
-    "EXAMPLE_VALUE": "example_value"
+    "NPM_VERSION": "pnpm@10"
   },
   "d1_databases": [
     {
