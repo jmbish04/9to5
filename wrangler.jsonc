@@ -27,12 +27,13 @@
   ],
   "kv_namespaces": [
       { "binding": "SESSION", "id": "df5aa39254fd4905a2f0e035f2d6a0c2" }
-  ],  
-    "workflows": [
-    {
-      "name": "saas-admin-template-customer-workflow",
-      "binding": "CUSTOMER_WORKFLOW",
-      "class_name": "CustomerWorkflow"
-    }
   ]
+  // Temporarily commented out workflows to focus on monitoring functionality
+  // "workflows": [
+  //   {
+  //     "name": "saas-admin-template-customer-workflow",
+  //     "binding": "CUSTOMER_WORKFLOW",
+  //     "class_name": "CustomerWorkflow"
+  //   }
+  // ]
 }

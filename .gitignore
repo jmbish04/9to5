@@ -27,10 +27,9 @@ pnpm-debug.log*
 .wrangler
 .dev.vars
 
-
 # Wrangler
 .wrangler/
 
-
-# Wrangler
-.wrangler/
+# Temporary files
+sample-data.sql
+*.tmp
