@@ -1,17 +1,38 @@
 // Add Applicant & AI endpoints (Milestone 2)
+import type { paths, operations, components } from './types/openapi';
+// Import legacy types for schemas that aren't fully defined in OpenAPI yet
 import type {
-  Job,
-  MonitoringStatus,
-  JobTrackingPayload,
-  ApplicantHistoryResponse,
-  CoverLetterResponse,
-  ResumeResponse,
+  ApplicantProfile,
+  JobHistoryEntry,
+  JobHistorySubmission,
   JobRating
 } from './types/api';
 
-// Allow overriding the API base URL via environment variable. When unset,
-// requests will default to the same origin as the frontend.
-const API_BASE = (import.meta.env.PUBLIC_API_BASE || '').replace(/\/$/, '');
+// Use the specified API base URL from the requirements
+const API_BASE = 'https://9to5-scout.hacolby.workers.dev';
+
+// Type aliases for better readability and to handle missing OpenAPI schema definitions
+type MonitoringStatusResponse = operations['getMonitoringStatus']['responses']['200']['content']['application/json'];
+type JobsListResponse = operations['listJobs']['responses']['200']['content']['application/json'];
+type JobResponse = operations['getJob']['responses']['200']['content']['application/json'];
+type JobTrackingResponse = operations['getJobTracking']['responses']['200']['content']['application/json'];
+type CoverLetterResponse = operations['generateCoverLetter']['responses']['200']['content']['application/json'];
+type ResumeResponse = operations['generateResume']['responses']['200']['content']['application/json'];
+
+// For endpoints with missing schemas, use legacy types with proper interface
+type ApplicantHistoryResponse = {
+  applicant?: ApplicantProfile | null;
+  job_history: JobHistoryEntry[];
+  submissions: JobHistorySubmission[];
+};
+
+type SubmitJobHistoryResponse = {
+  success: boolean;
+  submission_id: string;
+  applicant_id: string;
+  entries_processed: number;
+  entries: JobHistoryEntry[];
+};
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -69,8 +90,8 @@ export function validateApiTokenResponse(
   return undefined;
 }
 
-export async function getMonitoringStatus(): Promise<MonitoringStatus> {
-  return http<MonitoringStatus>('/api/monitoring/status');
+export async function getMonitoringStatus(): Promise<MonitoringStatusResponse> {
+  return http<MonitoringStatusResponse>('/api/monitoring/status');
 }
 
 export interface ListJobsParams {
@@ -79,29 +100,29 @@ export interface ListJobsParams {
   status?: 'open' | 'closed';
   source?: 'SCRAPED' | 'EMAIL' | 'MANUAL';
 }
-export async function listJobs(params: ListJobsParams = {}): Promise<Job[]> {
+export async function listJobs(params: ListJobsParams = {}): Promise<JobsListResponse> {
   const qs = new URLSearchParams();
   if (params.limit != null) qs.set('limit', String(params.limit));
   if (params.offset != null) qs.set('offset', String(params.offset));
   if (params.status) qs.set('status', params.status);
   if (params.source) qs.set('source', params.source);
   const q = qs.toString();
-  return http<Job[]>(`/api/jobs${q ? `?${q}` : ''}`);
+  return http<JobsListResponse>(`/api/jobs${q ? `?${q}` : ''}`);
 }
 
-export async function getJob(id: string): Promise<Job> {
-  return http<Job>(`/api/jobs/${encodeURIComponent(id)}`);
+export async function getJob(id: string): Promise<JobResponse> {
+  return http<JobResponse>(`/api/jobs/${encodeURIComponent(id)}`);
 }
 
-export async function getJobTracking(id: string): Promise<JobTrackingPayload> {
-  return http<JobTrackingPayload>(`/api/jobs/${encodeURIComponent(id)}/tracking`);
+export async function getJobTracking(id: string): Promise<JobTrackingResponse> {
+  return http<JobTrackingResponse>(`/api/jobs/${encodeURIComponent(id)}/tracking`);
 }
 
 export async function updateJobMonitoring(id: string, body: {
   daily_monitoring_enabled?: boolean;
   monitoring_frequency_hours?: number;
-}): Promise<Job> {
-  return http<Job>(`/api/jobs/${encodeURIComponent(id)}/monitoring`, {
+}): Promise<JobResponse> {
+  return http<JobResponse>(`/api/jobs/${encodeURIComponent(id)}/monitoring`, {
     method: 'PUT',
     body: JSON.stringify(body)
   });
@@ -117,14 +138,8 @@ export async function submitApplicantHistory(body: {
   user_id: string;
   raw_content: string;
   content_type?: 'text/plain' | 'text/markdown' | 'application/json';
-}): Promise<{
-  success: boolean;
-  submission_id: string;
-  applicant_id: string;
-  entries_processed: number;
-  entries: unknown[];
-}> {
-  return http(`/api/applicant/history`, {
+}): Promise<SubmitJobHistoryResponse> {
+  return http<SubmitJobHistoryResponse>(`/api/applicant/history`, {
     method: 'POST',
     body: JSON.stringify(body)
   });
