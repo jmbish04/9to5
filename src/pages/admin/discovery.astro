@@ -1,0 +1,289 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+
+// Pass the API token to the client-side components
+const clientApiToken = import.meta.env.API_TOKEN || 'dev_token_123';
+---
+<AdminLayout>
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Discovery Dashboard</h1>
+    <p class="mt-1 text-sm text-gray-600">
+      Control job discovery, monitor tracking queue, and manage your job interests
+    </p>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <!-- Discovery Controls -->
+    <div class="rounded-lg border border-gray-200 bg-white p-4">
+      <h3 class="mb-3 text-lg font-semibold">Discovery & Monitoring Controls</h3>
+      
+      <div class="space-y-4">
+        <!-- Discovery Controls -->
+        <div class="flex items-center justify-between p-3 border rounded-lg">
+          <div>
+            <h4 class="font-medium text-sm">Job Discovery</h4>
+            <p class="text-xs text-gray-600">Find new job opportunities</p>
+          </div>
+          <button 
+            onclick="startDiscovery()"
+            class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            id="discovery-btn"
+          >
+            Start Discovery
+          </button>
+        </div>
+
+        <!-- Monitoring Controls -->
+        <div class="flex items-center justify-between p-3 border rounded-lg">
+          <div>
+            <h4 class="font-medium text-sm">Job Monitoring</h4>
+            <p class="text-xs text-gray-600">Check existing jobs for changes</p>
+          </div>
+          <button 
+            onclick="startMonitoring()"
+            class="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+            id="monitoring-btn"
+          >
+            Start Monitoring
+          </button>
+        </div>
+
+        <!-- Results Display -->
+        <div id="results-display" class="hidden"></div>
+      </div>
+    </div>
+
+    <!-- Interest Signals Summary -->
+    <div class="rounded-lg border border-gray-200 bg-white p-4">
+      <h3 class="mb-3 text-lg font-semibold">Interest Tracking</h3>
+      <div class="space-y-3">
+        <div class="text-sm text-gray-600">
+          Track your interest in jobs locally. Signals are stored in your browser and can be synced later.
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+          <div class="text-center">
+            <div class="text-lg font-semibold text-green-700" id="interested-count">-</div>
+            <div class="text-xs text-gray-600">Interested</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold text-gray-700" id="not-now-count">-</div>
+            <div class="text-xs text-gray-600">Not Now</div>
+          </div>
+        </div>
+        
+        <div class="text-xs text-gray-500">
+          💡 Use the interest buttons on job listings to track your preferences
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monitoring Queue - Full Width -->
+  <div class="mt-6 rounded-lg border border-gray-200 bg-white p-4">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Monitoring Queue</h3>
+      <button
+        onclick="loadQueue()"
+        class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+        id="refresh-btn"
+      >
+        Refresh
+      </button>
+    </div>
+    <div id="queue-container">
+      <div class="text-center text-gray-500 py-6">
+        <div class="text-sm">Loading queue...</div>
+      </div>
+    </div>
+  </div>
+
+  <script define:vars={{ clientApiToken }}>
+    // Global state
+    let isLoading = false;
+
+    // Discovery functions
+    async function startDiscovery() {
+      const btn = document.getElementById('discovery-btn');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      
+      try {
+        const response = await fetch('/api/runs/discovery', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${clientApiToken}`
+          },
+          body: JSON.stringify({})
+        });
+
+        const result = await response.json();
+        showResult('discovery', result, response.ok);
+      } catch (error) {
+        showResult('discovery', { error: error.message }, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Start Discovery';
+      }
+    }
+
+    async function startMonitoring() {
+      const btn = document.getElementById('monitoring-btn');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      
+      try {
+        const response = await fetch('/api/runs/monitor', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${clientApiToken}`
+          }
+        });
+
+        const result = await response.json();
+        showResult('monitoring', result, response.ok);
+      } catch (error) {
+        showResult('monitoring', { error: error.message }, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Start Monitoring';
+      }
+    }
+
+    function showResult(type, result, success) {
+      const container = document.getElementById('results-display');
+      const bgColor = success ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700';
+      
+      container.innerHTML = `
+        <div class="text-xs p-2 rounded border ${bgColor}">
+          <div class="font-medium">${type} ${success ? 'started' : 'failed'}</div>
+          ${result.run_id ? `<div>Run ID: ${result.run_id}</div>` : ''}
+          ${result.status ? `<div>Status: ${result.status}</div>` : ''}
+          ${result.error ? `<div>Error: ${result.error}</div>` : ''}
+        </div>
+      `;
+      container.classList.remove('hidden');
+    }
+
+    // Queue functions
+    async function loadQueue() {
+      const container = document.getElementById('queue-container');
+      const btn = document.getElementById('refresh-btn');
+      
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      
+      try {
+        const response = await fetch('/api/jobs/monitoring-queue?limit=20', {
+          headers: {
+            'Authorization': `Bearer ${clientApiToken}`
+          }
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          renderQueue(data);
+        } else {
+          throw new Error(data.error || 'Failed to load queue');
+        }
+      } catch (error) {
+        container.innerHTML = `
+          <div class="text-center text-red-600 py-6">
+            <div class="text-sm">Failed to load queue: ${error.message}</div>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Refresh';
+      }
+    }
+
+    function renderQueue(data) {
+      const container = document.getElementById('queue-container');
+      
+      if (!data.jobs || data.jobs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-gray-500 py-6">
+            <div class="text-sm">No jobs in monitoring queue</div>
+            <div class="text-xs mt-1">All jobs are up to date</div>
+          </div>
+        `;
+        return;
+      }
+
+      const jobsHtml = data.jobs.map(job => {
+        const priorityBadge = job.monitoring_priority >= 8 ? 
+          '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">High</span>' :
+          job.monitoring_priority >= 5 ?
+          '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Medium</span>' :
+          '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">Low</span>';
+
+        return `
+          <div class="border rounded-lg p-3 hover:bg-gray-50">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <h4 class="font-medium text-sm">
+                    <a href="/admin/jobs/${encodeURIComponent(job.id)}" class="text-blue-600 hover:underline">
+                      ${job.title || 'Untitled Job'}
+                    </a>
+                  </h4>
+                  ${priorityBadge}
+                </div>
+                <div class="text-xs text-gray-600 space-y-1">
+                  <div>${job.company || '—'} • ${job.location || '—'}</div>
+                  <div>Last checked: ${job.days_since_last_check} days ago</div>
+                </div>
+              </div>
+              <a href="${job.url}" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline ml-2">
+                View Job ↗
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="text-sm text-gray-600 mb-4">
+          ${data.total_jobs} jobs need monitoring, showing ${data.returned_jobs}
+        </div>
+        <div class="space-y-3">
+          ${jobsHtml}
+        </div>
+      `;
+    }
+
+    // Interest counts functions
+    function updateInterestCounts() {
+      try {
+        const signals = JSON.parse(localStorage.getItem('job_interest_signals') || '{}');
+        let interestedCount = 0;
+        let notNowCount = 0;
+        
+        Object.values(signals).forEach((signal) => {
+          if (signal.signal === 'interested') interestedCount++;
+          if (signal.signal === 'not_now') notNowCount++;
+        });
+        
+        document.getElementById('interested-count').textContent = interestedCount;
+        document.getElementById('not-now-count').textContent = notNowCount;
+      } catch (error) {
+        console.error('Failed to update interest counts:', error);
+        document.getElementById('interested-count').textContent = '0';
+        document.getElementById('not-now-count').textContent = '0';
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      updateInterestCounts();
+      loadQueue();
+      
+      // Listen for interest signal changes
+      window.addEventListener('interestSignalChanged', updateInterestCounts);
+    });
+  </script>
+</AdminLayout>

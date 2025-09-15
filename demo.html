@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>9to5-Scout Discovery Dashboard Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-xl font-semibold">9to5-Scout Discovery Dashboard</h1>
+                    <div class="text-sm text-gray-500">Demo Implementation</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <!-- Main Content -->
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Discovery Dashboard</h2>
+                <p class="mt-1 text-sm text-gray-600">
+                    Control job discovery, monitor tracking queue, and manage your job interests
+                </p>
+            </div>
+
+            <div class="grid gap-6 lg:grid-cols-2 mb-6">
+                <!-- Discovery Controls -->
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <h3 class="mb-3 text-lg font-semibold">Discovery & Monitoring Controls</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Discovery Controls -->
+                        <div class="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                                <h4 class="font-medium text-sm">Job Discovery</h4>
+                                <p class="text-xs text-gray-600">Find new job opportunities</p>
+                            </div>
+                            <button 
+                                onclick="startDiscovery()"
+                                class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                                id="discovery-btn"
+                            >
+                                Start Discovery
+                            </button>
+                        </div>
+
+                        <!-- Monitoring Controls -->
+                        <div class="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                                <h4 class="font-medium text-sm">Job Monitoring</h4>
+                                <p class="text-xs text-gray-600">Check existing jobs for changes</p>
+                            </div>
+                            <button 
+                                onclick="startMonitoring()"
+                                class="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+                                id="monitoring-btn"
+                            >
+                                Start Monitoring
+                            </button>
+                        </div>
+
+                        <!-- Results Display -->
+                        <div id="results-display" class="hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Interest Signals Summary -->
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <h3 class="mb-3 text-lg font-semibold">Interest Tracking</h3>
+                    <div class="space-y-3">
+                        <div class="text-sm text-gray-600">
+                            Track your interest in jobs locally. Signals are stored in your browser and can be synced later.
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-green-700" id="interested-count">0</div>
+                                <div class="text-xs text-gray-600">Interested</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-gray-700" id="not-now-count">0</div>
+                                <div class="text-xs text-gray-600">Not Now</div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-xs text-gray-500">
+                            💡 Use the interest buttons on job listings below to track your preferences
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo Job Listings with Interest Signals -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                <h3 class="mb-4 text-lg font-semibold">Sample Job Listings with Interest Signals</h3>
+                <div class="space-y-3" id="job-listings">
+                    <!-- Jobs will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Monitoring Queue -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Monitoring Queue</h3>
+                    <button
+                        onclick="loadQueue()"
+                        class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                        id="refresh-btn"
+                    >
+                        Refresh
+                    </button>
+                </div>
+                <div id="queue-container">
+                    <div class="text-center text-gray-500 py-6">
+                        <div class="text-sm">Click "Refresh" to load monitoring queue</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock API base
+        const API_BASE = '/api';
+        const API_TOKEN = 'demo_token';
+
+        // Mock job data for demonstration
+        const sampleJobs = [
+            {
+                id: 'job-001',
+                title: 'Senior Frontend Developer',
+                company: 'TechCorp',
+                location: 'San Francisco, CA',
+                employment_type: 'Full-time',
+                status: 'open',
+                source: 'SCRAPED'
+            },
+            {
+                id: 'job-002', 
+                title: 'React Developer',
+                company: 'StartupXYZ',
+                location: 'Remote',
+                employment_type: 'Full-time',
+                status: 'open',
+                source: 'EMAIL'
+            },
+            {
+                id: 'job-003',
+                title: 'Full Stack Engineer',
+                company: 'BigTech Inc',
+                location: 'New York, NY',
+                employment_type: 'Full-time',
+                status: 'open',
+                source: 'MANUAL'
+            }
+        ];
+
+        // Mock monitoring queue data
+        const queueData = {
+            total_jobs: 5,
+            returned_jobs: 3,
+            jobs: [
+                {
+                    id: 'job-001',
+                    title: 'Senior Frontend Developer',
+                    company: 'TechCorp',
+                    location: 'San Francisco, CA',
+                    url: 'https://techcorp.com/jobs/senior-frontend-dev',
+                    employment_type: 'Full-time',
+                    last_crawled_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                    monitoring_priority: 8,
+                    days_since_last_check: 2
+                },
+                {
+                    id: 'job-002',
+                    title: 'React Developer', 
+                    company: 'StartupXYZ',
+                    location: 'Remote',
+                    url: 'https://startupxyz.com/careers/react-dev',
+                    employment_type: 'Full-time',
+                    last_crawled_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                    monitoring_priority: 6,
+                    days_since_last_check: 3
+                },
+                {
+                    id: 'job-003',
+                    title: 'Full Stack Engineer',
+                    company: 'BigTech Inc',
+                    location: 'New York, NY', 
+                    url: 'https://bigtech.com/jobs/fullstack-eng',
+                    employment_type: 'Full-time',
+                    last_crawled_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                    monitoring_priority: 9,
+                    days_since_last_check: 1
+                }
+            ]
+        };
+
+        // Interest signals storage
+        function getStoredSignals() {
+            try {
+                const stored = localStorage.getItem('job_interest_signals');
+                return stored ? JSON.parse(stored) : {};
+            } catch {
+                return {};
+            }
+        }
+
+        function storeSignal(jobId, signal) {
+            try {
+                const signals = getStoredSignals();
+                
+                if (signal === null) {
+                    delete signals[jobId];
+                } else {
+                    signals[jobId] = {
+                        jobId,
+                        signal,
+                        timestamp: new Date().toISOString()
+                    };
+                }
+                
+                localStorage.setItem('job_interest_signals', JSON.stringify(signals));
+                updateInterestCounts();
+                updateJobListings();
+            } catch (error) {
+                console.error('Failed to store interest signal:', error);
+            }
+        }
+
+        function updateInterestCounts() {
+            try {
+                const signals = getStoredSignals();
+                let interestedCount = 0;
+                let notNowCount = 0;
+                
+                Object.values(signals).forEach((signal) => {
+                    if (signal.signal === 'interested') interestedCount++;
+                    if (signal.signal === 'not_now') notNowCount++;
+                });
+                
+                document.getElementById('interested-count').textContent = interestedCount;
+                document.getElementById('not-now-count').textContent = notNowCount;
+            } catch (error) {
+                console.error('Failed to update interest counts:', error);
+            }
+        }
+
+        // Discovery and monitoring functions
+        async function startDiscovery() {
+            const btn = document.getElementById('discovery-btn');
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+            
+            // Simulate API call
+            setTimeout(() => {
+                const result = {
+                    run_id: 'disc_' + Math.random().toString(36).substr(2, 9),
+                    status: 'queued'
+                };
+                showResult('discovery', result, true);
+                btn.disabled = false;
+                btn.textContent = 'Start Discovery';
+            }, 1500);
+        }
+
+        async function startMonitoring() {
+            const btn = document.getElementById('monitoring-btn');
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+            
+            // Simulate API call
+            setTimeout(() => {
+                const result = {
+                    run_id: 'mon_' + Math.random().toString(36).substr(2, 9),
+                    status: 'queued'
+                };
+                showResult('monitoring', result, true);
+                btn.disabled = false;
+                btn.textContent = 'Start Monitoring';
+            }, 1000);
+        }
+
+        function showResult(type, result, success) {
+            const container = document.getElementById('results-display');
+            const bgColor = success ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700';
+            
+            container.innerHTML = `
+                <div class="text-xs p-2 rounded border ${bgColor}">
+                    <div class="font-medium">${type} ${success ? 'started' : 'failed'}</div>
+                    ${result.run_id ? `<div>Run ID: ${result.run_id}</div>` : ''}
+                    ${result.status ? `<div>Status: ${result.status}</div>` : ''}
+                    ${result.error ? `<div>Error: ${result.error}</div>` : ''}
+                </div>
+            `;
+            container.classList.remove('hidden');
+        }
+
+        // Queue functions
+        function loadQueue() {
+            const container = document.getElementById('queue-container');
+            const btn = document.getElementById('refresh-btn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+            
+            // Simulate loading delay
+            setTimeout(() => {
+                renderQueue(queueData);
+                btn.disabled = false;
+                btn.textContent = 'Refresh';
+            }, 800);
+        }
+
+        function renderQueue(data) {
+            const container = document.getElementById('queue-container');
+            
+            if (!data.jobs || data.jobs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-6">
+                        <div class="text-sm">No jobs in monitoring queue</div>
+                        <div class="text-xs mt-1">All jobs are up to date</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const jobsHtml = data.jobs.map(job => {
+                const priorityBadge = job.monitoring_priority >= 8 ? 
+                    '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">High</span>' :
+                    job.monitoring_priority >= 5 ?
+                    '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Medium</span>' :
+                    '<span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">Low</span>';
+
+                return `
+                    <div class="border rounded-lg p-3 hover:bg-gray-50">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="font-medium text-sm">
+                                        <span class="text-blue-600">${job.title}</span>
+                                    </h4>
+                                    ${priorityBadge}
+                                </div>
+                                <div class="text-xs text-gray-600 space-y-1">
+                                    <div>${job.company} • ${job.location}</div>
+                                    <div>Last checked: ${job.days_since_last_check} days ago</div>
+                                </div>
+                            </div>
+                            <a href="${job.url}" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline ml-2">
+                                View Job ↗
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="text-sm text-gray-600 mb-4">
+                    ${data.total_jobs} jobs need monitoring, showing ${data.returned_jobs}
+                </div>
+                <div class="space-y-3">
+                    ${jobsHtml}
+                </div>
+            `;
+        }
+
+        // Job listings with interest signals
+        function updateJobListings() {
+            const signals = getStoredSignals();
+            const container = document.getElementById('job-listings');
+            
+            const jobsHtml = sampleJobs.map(job => {
+                const signal = signals[job.id];
+                const sourceBadge = {
+                    'SCRAPED': 'bg-blue-100 text-blue-800',
+                    'EMAIL': 'bg-indigo-100 text-indigo-800',
+                    'MANUAL': 'bg-gray-100 text-gray-800'
+                }[job.source] || 'bg-gray-100 text-gray-800';
+
+                let interestControls = '';
+                if (signal?.signal) {
+                    const badgeClass = signal.signal === 'interested' ? 
+                        'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+                    const badgeText = signal.signal === 'interested' ? 'Interested' : 'Not Now';
+                    
+                    interestControls = `
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-1 rounded-full ${badgeClass}">${badgeText}</span>
+                            <button onclick="storeSignal('${job.id}', null)" class="text-xs text-gray-500 hover:text-gray-700">Clear</button>
+                        </div>
+                    `;
+                } else {
+                    interestControls = `
+                        <div class="flex items-center gap-2">
+                            <button onclick="storeSignal('${job.id}', 'interested')" class="text-xs px-2 py-1 border rounded hover:bg-gray-50">👍 Interested</button>
+                            <button onclick="storeSignal('${job.id}', 'not_now')" class="text-xs px-2 py-1 border rounded hover:bg-gray-50">⏭️ Not Now</button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="border rounded-lg p-3 hover:bg-gray-50">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="font-medium text-sm text-blue-600">${job.title}</h4>
+                                    <span class="text-xs px-2 py-1 rounded-full ${sourceBadge}">${job.source}</span>
+                                </div>
+                                <div class="text-xs text-gray-600 mb-2">
+                                    ${job.company} • ${job.location} • ${job.employment_type}
+                                </div>
+                                ${interestControls}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = jobsHtml;
+        }
+
+        // Initialize demo
+        document.addEventListener('DOMContentLoaded', function() {
+            updateInterestCounts();
+            updateJobListings();
+        });
+    </script>
+</body>
+</html>
