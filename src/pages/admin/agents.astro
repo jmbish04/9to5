@@ -1,0 +1,80 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listAgents } from '../../lib/api';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+
+let agents = [];
+let loadError = null;
+try {
+  agents = await listAgents();
+} catch (e) {
+  loadError = e;
+}
+---
+<AdminLayout>
+  <div class="mb-4 flex items-center justify-between">
+    <h1 class="text-2xl font-bold">Agents</h1>
+    <Button disabled title="Create functionality coming in Milestone 2">Create Agent</Button>
+  </div>
+
+  {loadError ? (
+    <Card>
+      <CardContent class="py-6">
+        <div class="text-sm text-red-700">Failed to load agents: {loadError.message}</div>
+      </CardContent>
+    </Card>
+  ) : (
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {agents.map((agent) => (
+        <Card>
+          <CardHeader>
+            <div class="flex items-start justify-between">
+              <div>
+                <CardTitle class="text-base">{agent.name}</CardTitle>
+                <div class="text-sm text-neutral-600 mt-1">{agent.role}</div>
+              </div>
+              <Badge 
+                client:only="react"
+                variant={agent.enabled ? 'default' : 'secondary'}
+              >
+                {agent.enabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent class="pt-0">
+            <div class="space-y-3">
+              <div>
+                <div class="text-xs font-medium text-neutral-600 mb-1">Goal</div>
+                <div class="text-sm">{agent.goal}</div>
+              </div>
+              <div>
+                <div class="text-xs font-medium text-neutral-600 mb-1">Backstory</div>
+                <div class="text-sm text-neutral-600 line-clamp-3">{agent.backstory}</div>
+              </div>
+              <div class="flex items-center justify-between text-xs text-neutral-500">
+                <div>Model: {agent.llm}</div>
+                <div>Temp: {agent.temperature || 0.7}</div>
+                <div>Max Tokens: {agent.max_tokens || 4000}</div>
+              </div>
+              <div class="flex gap-2">
+                <Button variant="outline" size="sm" disabled>Edit</Button>
+                <Button variant="outline" size="sm" disabled>Delete</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      
+      {agents.length === 0 && !loadError && (
+        <Card class="lg:col-span-2">
+          <CardContent class="py-8 text-center">
+            <div class="text-neutral-500">No agents configured yet.</div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )}
+</AdminLayout>
