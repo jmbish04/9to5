@@ -79,14 +79,22 @@ export interface ListJobsParams {
   status?: 'open' | 'closed';
   source?: 'SCRAPED' | 'EMAIL' | 'MANUAL';
 }
-export async function listJobs(params: ListJobsParams = {}): Promise<Job[]> {
+
+export interface ListJobsResponse {
+  jobs: Job[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function listJobs(params: ListJobsParams = {}): Promise<ListJobsResponse> {
   const qs = new URLSearchParams();
   if (params.limit != null) qs.set('limit', String(params.limit));
   if (params.offset != null) qs.set('offset', String(params.offset));
   if (params.status) qs.set('status', params.status);
   if (params.source) qs.set('source', params.source);
   const q = qs.toString();
-  return http<Job[]>(`/api/jobs${q ? `?${q}` : ''}`);
+  return http<ListJobsResponse>(`/api/jobs${q ? `?${q}` : ''}`);
 }
 
 export async function getJob(id: string): Promise<Job> {
