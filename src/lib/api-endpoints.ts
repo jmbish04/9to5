@@ -365,6 +365,157 @@ const apiEndpoints: APIEndpoint[] = [
       },
     ],
   },
+  {
+    method: "GET",
+    path: "/api/email-config",
+    description: "Retrieve all email configurations",
+    responses: [
+      {
+        name: "Response",
+        example: {
+          email_configs: [
+            {
+              id: "config-123",
+              recipient_email: "user@example.com",
+              include_new_jobs: true,
+              include_job_changes: false,
+              include_statistics: true,
+              frequency_hours: 24,
+              last_sent_at: "2024-01-01T00:00:00.000Z"
+            }
+          ],
+          success: true
+        },
+        description: "Returns an array of email configuration objects"
+      }
+    ]
+  },
+  {
+    method: "POST",
+    path: "/api/email-config",
+    description: "Create a new email configuration",
+    parameters: [
+      {
+        name: "recipient_email",
+        type: "string",
+        required: true,
+        description: "Email address to receive notifications"
+      },
+      {
+        name: "include_new_jobs",
+        type: "boolean",
+        required: false,
+        description: "Include new job postings in emails"
+      },
+      {
+        name: "include_job_changes",
+        type: "boolean", 
+        required: false,
+        description: "Include job updates in emails"
+      },
+      {
+        name: "include_statistics",
+        type: "boolean",
+        required: false,
+        description: "Include processing statistics in emails"
+      },
+      {
+        name: "frequency_hours",
+        type: "number",
+        required: false,
+        description: "Email frequency in hours (default: 24)"
+      }
+    ],
+    requestBody: {
+      example: {
+        recipient_email: "user@example.com",
+        include_new_jobs: true,
+        include_job_changes: false,
+        include_statistics: true,
+        frequency_hours: 24
+      }
+    },
+    responses: [
+      {
+        name: "Response",
+        example: {
+          message: "Email configuration created successfully",
+          success: true,
+          email_config: {
+            id: "config-123",
+            recipient_email: "user@example.com",
+            include_new_jobs: true,
+            include_job_changes: false,
+            include_statistics: true,
+            frequency_hours: 24
+          }
+        }
+      }
+    ]
+  },
+  {
+    method: "GET",
+    path: "/api/email-logs",
+    description: "Retrieve email processing logs with optional filtering",
+    parameters: [
+      {
+        name: "page",
+        type: "number",
+        required: false,
+        description: "Page number for pagination (default: 1)"
+      },
+      {
+        name: "limit",
+        type: "number",
+        required: false,
+        description: "Number of logs per page (max: 100, default: 50)"
+      },
+      {
+        name: "from_email",
+        type: "string",
+        required: false,
+        description: "Filter by sender email address"
+      },
+      {
+        name: "start_date",
+        type: "string",
+        required: false,
+        description: "Filter logs from this date (ISO format)"
+      },
+      {
+        name: "end_date",
+        type: "string",
+        required: false,
+        description: "Filter logs to this date (ISO format)"
+      }
+    ],
+    responses: [
+      {
+        name: "Response",
+        example: {
+          email_logs: [
+            {
+              id: "log-123",
+              created_at: "2024-01-01T00:00:00.000Z",
+              from_email: "jobs@company.com",
+              subject: "Daily Job Updates",
+              job_links_extracted: 5,
+              jobs_processed: 3,
+              notes: "Successfully processed job postings"
+            }
+          ],
+          pagination: {
+            page: 1,
+            limit: 50,
+            total: 100,
+            pages: 2
+          },
+          success: true
+        },
+        description: "Returns paginated email logs with processing information"
+      }
+    ]
+  }
 ];
 
 export { apiEndpoints };
