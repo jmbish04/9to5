@@ -232,6 +232,100 @@
           "pdfs_generated": { "type": "integer" },
           "markdown_extracts": { "type": "integer" }
         }
+      },
+      "JobHistoryEntry": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "applicant_id": { "type": "string" },
+          "company_name": { "type": "string" },
+          "job_title": { "type": "string" },
+          "job_description": { "type": "string" },
+          "employment_type": { "type": "string" },
+          "location": { "type": "string" },
+          "salary_range": { "type": "string" },
+          "start_date": { "type": "string", "format": "date" },
+          "end_date": { "type": "string", "format": "date" },
+          "current_position": { "type": "boolean" },
+          "key_responsibilities": { "type": "array", "items": { "type": "string" } },
+          "achievements": { "type": "array", "items": { "type": "string" } },
+          "skills_used": { "type": "array", "items": { "type": "string" } },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ApplicantProfile": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "location": { "type": "string" },
+          "experience_years": { "type": "integer" },
+          "current_role": { "type": "string" },
+          "skills": { "type": "array", "items": { "type": "string" } },
+          "education": { "type": "string" },
+          "career_summary": { "type": "string" },
+          "preferences": { 
+            "type": "object",
+            "properties": {
+              "work_style": { "type": "string" },
+              "location_preferences": { "type": "array", "items": { "type": "string" } },
+              "salary_range": {
+                "type": "object",
+                "properties": {
+                  "min": { "type": "number" },
+                  "max": { "type": "number" },
+                  "currency": { "type": "string" }
+                }
+              },
+              "remote_ok": { "type": "boolean" },
+              "employment_type": { "type": "string" }
+            }
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "JobHistorySubmission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "applicant_id": { "type": "string" },
+          "raw_content": { "type": "string" },
+          "content_type": { "type": "string" },
+          "processing_status": { "type": "string", "enum": ["pending", "processing", "completed", "failed"] },
+          "entries_processed": { "type": "integer" },
+          "error_message": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "JobRating": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "job_id": { "type": "string" },
+          "overall_fit_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "skill_match_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "experience_match_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "salary_match_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "location_match_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "culture_match_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "fit_explanation": { "type": "string" },
+          "highlighted_skills": { "type": "array", "items": { "type": "string" } },
+          "missing_skills": { "type": "array", "items": { "type": "string" } },
+          "strengths": { "type": "array", "items": { "type": "string" } },
+          "concerns": { "type": "array", "items": { "type": "string" } },
+          "recommendation": { "type": "string", "enum": ["apply", "maybe", "skip"] },
+          "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
       }
     }
   },

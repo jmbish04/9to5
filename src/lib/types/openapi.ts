@@ -340,6 +340,95 @@ export interface components {
       pdfs_generated?: number;
       markdown_extracts?: number;
     };
+    JobHistoryEntry: {
+      id?: string;
+      applicant_id?: string;
+      company_name?: string;
+      job_title?: string;
+      job_description?: string;
+      employment_type?: string;
+      location?: string;
+      salary_range?: string;
+      /** Format: date */
+      start_date?: string;
+      /** Format: date */
+      end_date?: string;
+      current_position?: boolean;
+      key_responsibilities?: string[];
+      achievements?: string[];
+      skills_used?: string[];
+      /** Format: date-time */
+      created_at?: string;
+      /** Format: date-time */
+      updated_at?: string;
+    };
+    ApplicantProfile: {
+      id?: string;
+      user_id?: string;
+      name?: string;
+      /** Format: email */
+      email?: string;
+      phone?: string;
+      location?: string;
+      experience_years?: number;
+      current_role?: string;
+      skills?: string[];
+      education?: string;
+      career_summary?: string;
+      preferences?: {
+        work_style?: string;
+        location_preferences?: string[];
+        salary_range?: {
+          min?: number;
+          max?: number;
+          currency?: string;
+        };
+        remote_ok?: boolean;
+        employment_type?: string;
+      };
+      /** Format: date-time */
+      created_at?: string;
+      /** Format: date-time */
+      updated_at?: string;
+    };
+    JobHistorySubmission: {
+      id?: string;
+      user_id?: string;
+      applicant_id?: string;
+      raw_content?: string;
+      content_type?: string;
+      /** @enum {string} */
+      processing_status?: "pending" | "processing" | "completed" | "failed";
+      entries_processed?: number;
+      error_message?: string;
+      /** Format: date-time */
+      created_at?: string;
+      /** Format: date-time */
+      updated_at?: string;
+    };
+    JobRating: {
+      id?: string;
+      user_id?: string;
+      job_id?: string;
+      overall_fit_score?: number;
+      skill_match_score?: number;
+      experience_match_score?: number;
+      salary_match_score?: number;
+      location_match_score?: number;
+      culture_match_score?: number;
+      fit_explanation?: string;
+      highlighted_skills?: string[];
+      missing_skills?: string[];
+      strengths?: string[];
+      concerns?: string[];
+      /** @enum {string} */
+      recommendation?: "apply" | "maybe" | "skip";
+      confidence_score?: number;
+      /** Format: date-time */
+      created_at?: string;
+      /** Format: date-time */
+      updated_at?: string;
+    };
   };
   responses: never;
   parameters: never;

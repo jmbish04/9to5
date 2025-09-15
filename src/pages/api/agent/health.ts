@@ -1,6 +1,6 @@
 import { validateApiTokenResponse } from '@/lib/api';
-import { AgentOrchestrator } from '@/lib/ai/orchestrator.js';
-import { getAgentsConfig } from '@/lib/ai/config.js';
+import { AgentOrchestrator } from '@/lib/ai/orchestrator';
+import { getAgentsConfig } from '@/lib/ai/config';
 
 const getOrchestrator = () => {
   const env = process.env.NODE_ENV || 'development';

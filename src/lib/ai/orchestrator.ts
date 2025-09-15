@@ -3,10 +3,10 @@ import type {
   AgentResponse, 
   AgentConfig,
   AgentHealthStatus 
-} from '../types.js';
-import { BaseAgent } from '../types.js';
-import { JobDiscoveryAgent } from '../agents/job-discovery.js';
-import { ContentGenerationAgent } from '../agents/content-generation.js';
+} from './types';
+import { BaseAgent } from './types';
+import { JobDiscoveryAgent } from './agents/job-discovery';
+import { ContentGenerationAgent } from './agents/content-generation';
 
 export class AgentOrchestrator {
   private agents: Map<string, BaseAgent> = new Map();

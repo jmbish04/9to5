@@ -5,8 +5,8 @@ import type {
   JobRecommendation,
   JobMatch,
   AgentConfig 
-} from '../types.js';
-import { BaseAgent } from '../types.js';
+} from '../types';
+import { BaseAgent } from '../types';
 
 export class JobDiscoveryAgent extends BaseAgent {
   constructor(config: AgentConfig) {
@@ -42,7 +42,7 @@ export class JobDiscoveryAgent extends BaseAgent {
         metadata: {
           execution_time_ms: Date.now() - startTime,
           model_used: this.config.model,
-          confidence_score: result.confidence_score || 0.8
+          confidence_score: 0.8
         }
       };
     } catch (error) {

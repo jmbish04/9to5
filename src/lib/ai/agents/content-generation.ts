@@ -5,8 +5,8 @@ import type {
   ResumeOptimizationRequest,
   ContentGenerationResult,
   AgentConfig 
-} from '../types.js';
-import { BaseAgent } from '../types.js';
+} from '../types';
+import { BaseAgent } from '../types';
 
 export class ContentGenerationAgent extends BaseAgent {
   constructor(config: AgentConfig) {
