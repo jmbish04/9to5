@@ -30,6 +30,9 @@ pnpm-debug.log*
 # Wrangler
 .wrangler/
 
+
 # Temporary files
 sample-data.sql
 *.tmp
+
+

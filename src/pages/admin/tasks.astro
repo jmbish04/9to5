@@ -1,0 +1,90 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listTasks, listAgents } from '../../lib/api';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+
+let tasks = [];
+let agents = [];
+let loadError = null;
+try {
+  [tasks, agents] = await Promise.all([listTasks(), listAgents()]);
+} catch (e) {
+  loadError = e;
+}
+
+// Create a map of agent names by ID for display
+const agentNames = new Map(agents.map(agent => [agent.id, agent.name]));
+---
+<AdminLayout>
+  <div class="mb-4 flex items-center justify-between">
+    <h1 class="text-2xl font-bold">Tasks</h1>
+    <Button disabled title="Create functionality coming in Milestone 2">Create Task</Button>
+  </div>
+
+  {loadError ? (
+    <Card>
+      <CardContent class="py-6">
+        <div class="text-sm text-red-700">Failed to load tasks: {loadError.message}</div>
+      </CardContent>
+    </Card>
+  ) : (
+    <div class="space-y-4">
+      {tasks.map((task) => (
+        <Card>
+          <CardHeader>
+            <div class="flex items-start justify-between">
+              <div>
+                <CardTitle class="text-base">{task.name}</CardTitle>
+                <div class="text-sm text-neutral-600 mt-1">
+                  Agent: {agentNames.get(task.agent_id) || task.agent_id}
+                </div>
+              </div>
+              <Badge 
+                client:only="react"
+                variant={task.enabled ? 'default' : 'secondary'}
+              >
+                {task.enabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent class="pt-0">
+            <div class="space-y-3">
+              <div>
+                <div class="text-xs font-medium text-neutral-600 mb-1">Description</div>
+                <div class="text-sm">{task.description}</div>
+              </div>
+              <div>
+                <div class="text-xs font-medium text-neutral-600 mb-1">Expected Output</div>
+                <div class="text-sm text-neutral-600">{task.expected_output}</div>
+              </div>
+              {task.context_tasks && task.context_tasks.length > 0 && (
+                <div>
+                  <div class="text-xs font-medium text-neutral-600 mb-1">Dependencies</div>
+                  <div class="flex flex-wrap gap-1">
+                    {task.context_tasks.map(taskId => (
+                      <Badge variant="outline" class="text-xs">{taskId}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div class="flex gap-2">
+                <Button variant="outline" size="sm" disabled>Edit</Button>
+                <Button variant="outline" size="sm" disabled>Delete</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      
+      {tasks.length === 0 && !loadError && (
+        <Card>
+          <CardContent class="py-8 text-center">
+            <div class="text-neutral-500">No tasks configured yet.</div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )}
+</AdminLayout>
