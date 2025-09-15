@@ -48,7 +48,7 @@ const jobs = jobsData?.jobs || [];
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">
                   <a 
-                    href={`/admin/jobs/${encodeURIComponent(job.id)}`}
+                    href={"/admin/jobs/" + encodeURIComponent(job.id)}
                     class="text-blue-600 hover:text-blue-900 hover:underline"
                   >
                     {job.title || 'Untitled Job'}
@@ -59,11 +59,11 @@ const jobs = jobsData?.jobs || [];
                 {job.company || '—'}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span class={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                <span class={"inline-flex px-2 py-1 text-xs font-semibold rounded-full " + (
                   job.status === 'open' 
                     ? 'bg-green-100 text-green-800' 
                     : 'bg-red-100 text-red-800'
-                }`}>
+                )}>
                   {job.status || 'Unknown'}
                 </span>
               </td>

@@ -6,6 +6,6 @@ export interface Props {
 const { className = '' } = Astro.props;
 ---
 
-<div class={`rounded-lg border border-neutral-200 bg-white shadow-sm ${className}`}>
+<div class={"rounded-lg border border-neutral-200 bg-white shadow-sm " + className}>
   <slot />
 </div>

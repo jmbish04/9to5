@@ -34,13 +34,13 @@ const apiTokenSet = API_TOKEN && API_TOKEN !== '';
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>{title ? `${title} - SaaS Admin Template` : 'SaaS Admin Template'}</title>
+    <title>{title ? title + ' - SaaS Admin Template' : 'SaaS Admin Template'}</title>
   </head>
   <body>
     <!-- <Header currentPath={currentPath} /> -->
     <div class="flex-1 space-y-4 p-8 pt-6">
       <div class="mb-4">
-        {/* !apiTokenSet && <ApiTokenMissingCard /> */}
+        <!-- !apiTokenSet && <ApiTokenMissingCard /> -->
       </div>
       <div class="flex items-center justify-between">
         <h2 class="text-3xl font-bold tracking-tight">{title}</h2>

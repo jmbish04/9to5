@@ -6,6 +6,6 @@ export interface Props {
 const { className = '' } = Astro.props;
 ---
 
-<div class={`p-4 ${className}`}>
+<div class={"p-4 " + className}>
   <slot />
 </div>
