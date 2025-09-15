@@ -44,12 +44,11 @@ const agentNames = new Map(agents.map(agent => [agent.id, agent.name]));
                   Agent: {agentNames.get(task.agent_id) || task.agent_id}
                 </div>
               </div>
-              <Badge 
-                client:only="react"
-                variant={task.enabled ? 'default' : 'secondary'}
+              <span 
+                class={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${task.enabled ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-700'}`}
               >
                 {task.enabled ? 'Enabled' : 'Disabled'}
-              </Badge>
+              </span>
             </div>
           </CardHeader>
           <CardContent class="pt-0">

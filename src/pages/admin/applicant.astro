@@ -110,7 +110,7 @@ const { data: histData, error: histErr } = await (async () => {
             Paste plaintext, Markdown, or JSON. The agent will parse and normalize it into entries.
           </div>
           <label class="text-xs font-medium">Content</label>
-          <Textarea id="historyContent" placeholder="Paste resume, markdown notes, bullets…" />
+          <textarea id="historyContent" placeholder="Paste resume, markdown notes, bullets…" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <div class="mb-1 text-xs text-neutral-600">Content Type</div>
@@ -121,21 +121,7 @@ const { data: histData, error: histErr } = await (async () => {
               </select>
             </div>
             <div class="flex items-end justify-end">
-              <Button
-                client:only="react"
-                onClick={async () => {
-                  const raw = (document.getElementById('historyContent') as HTMLTextAreaElement).value || '';
-                  const ct = (document.getElementById('historyType') as HTMLSelectElement).value as any;
-                  if (!raw.trim()) { alert('Please paste some content.'); return; }
-                  try {
-                    const res = await submitApplicantHistory({ user_id: 'default-user', raw_content: raw, content_type: ct });
-                    alert(`Submitted. Entries processed: ${res.entries_processed ?? 0}`);
-                    location.reload();
-                  } catch (e) {
-                    alert('Failed to submit history.');
-                  }
-                }}
-              >Submit</Button>
+              <Button disabled>Submit History</Button>
             </div>
           </div>
         </div>
@@ -149,56 +135,18 @@ const { data: histData, error: histErr } = await (async () => {
           <section class="space-y-2">
             <div class="text-sm font-medium">Cover Letter</div>
             <label class="text-xs">Job Title</label>
-            <Input id="cl_job_title" placeholder="Head of Data" />
+            <input type="text" id="cl_job_title" placeholder="Head of Data" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Company Name</label>
-            <Input id="cl_company_name" placeholder="Acme Corp" />
+            <input type="text" id="cl_company_name" placeholder="Acme Corp" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Hiring Manager (optional)</label>
-            <Input id="cl_hm" placeholder="Jane Doe" />
+            <input type="text" id="cl_hm" placeholder="Jane Doe" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Job Description (paste)</label>
-            <Textarea id="cl_jd" />
+            <textarea id="cl_jd" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             <label class="text-xs">Your Career Summary</label>
-            <Textarea id="cl_summary" placeholder="2–3 paragraphs or bullets summarizing your background" />
+            <textarea id="cl_summary" placeholder="2–3 paragraphs or bullets summarizing your background" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             <div class="flex gap-2">
-              <Button
-                client:only="react"
-                onClick={async () => {
-                  const b = {
-                    job_title: (document.getElementById('cl_job_title') as HTMLInputElement).value,
-                    company_name: (document.getElementById('cl_company_name') as HTMLInputElement).value,
-                    hiring_manager_name: (document.getElementById('cl_hm') as HTMLInputElement).value || undefined,
-                    job_description_text: (document.getElementById('cl_jd') as HTMLTextAreaElement).value,
-                    candidate_career_summary: (document.getElementById('cl_summary') as HTMLTextAreaElement).value
-                  };
-                  if (!b.job_title || !b.company_name || !b.job_description_text || !b.candidate_career_summary) {
-                    alert('Fill required fields.'); return;
-                  }
-                  try {
-                    const res = await createCoverLetter(b);
-                    const out = res.html || `<pre>${res.cover_letter}</pre>`;
-                    const el = document.getElementById('cl_output')!;
-                    el.innerHTML = out;
-                    el.scrollIntoView({ behavior: 'smooth' });
-                  } catch {
-                    alert('Failed to generate cover letter.');
-                  }
-                }}
-              >Generate</Button>
-              <Button
-                variant="secondary"
-                client:only="react"
-                onClick={() => {
-                  const el = document.getElementById('cl_output');
-                  if (!el) return;
-                  const range = document.createRange();
-                  range.selectNode(el);
-                  const sel = window.getSelection();
-                  sel?.removeAllRanges();
-                  sel?.addRange(range);
-                  document.execCommand('copy');
-                  sel?.removeAllRanges();
-                  alert('Copied cover letter to clipboard.');
-                }}
-              >Copy</Button>
+              <Button disabled>Generate Cover Letter</Button>
+              <Button variant="secondary" disabled>Copy</Button>
             </div>
             <div id="cl_output" class="prose mt-2 max-w-none rounded border p-3 text-sm"></div>
           </section>
@@ -206,59 +154,16 @@ const { data: histData, error: histErr } = await (async () => {
           <section class="space-y-2">
             <div class="text-sm font-medium">Resume Optimizer</div>
             <label class="text-xs">Job Title</label>
-            <Input id="re_job_title" placeholder="Head of Data" />
+            <input type="text" id="re_job_title" placeholder="Head of Data" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Company Name</label>
-            <Input id="re_company_name" placeholder="Acme Corp" />
+            <input type="text" id="re_company_name" placeholder="Acme Corp" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
             <label class="text-xs">Job Description (paste)</label>
-            <Textarea id="re_jd" />
+            <textarea id="re_jd" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             <label class="text-xs">Your Career Summary</label>
-            <Textarea id="re_summary" placeholder="Key highlights to emphasize" />
+            <textarea id="re_summary" placeholder="Key highlights to emphasize" class="w-full h-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
             <div class="flex gap-2">
-              <Button
-                client:only="react"
-                onClick={async () => {
-                  const b = {
-                    job_title: (document.getElementById('re_job_title') as HTMLInputElement).value,
-                    company_name: (document.getElementById('re_company_name') as HTMLInputElement).value,
-                    job_description_text: (document.getElementById('re_jd') as HTMLTextAreaElement).value,
-                    candidate_career_summary: (document.getElementById('re_summary') as HTMLTextAreaElement).value
-                  };
-                  if (!b.job_title || !b.company_name || !b.job_description_text || !b.candidate_career_summary) {
-                    alert('Fill required fields.'); return;
-                  }
-                  try {
-                    const res = await createResume(b);
-                    const html = `
-                      <div class="space-y-3">
-                        <div><span class="font-medium">Summary:</span><div class="mt-1">${res.summary || ''}</div></div>
-                        <div><span class="font-medium">Experience Bullets:</span><ul class="list-disc pl-5">${(res.experience_bullets||[]).map((x)=>`<li>${x}</li>`).join('')}</ul></div>
-                        <div><span class="font-medium">Skills:</span><div class="mt-1">${(res.skills||[]).join(', ')}</div></div>
-                      </div>
-                    `;
-                    const el = document.getElementById('re_output')!;
-                    el.innerHTML = html;
-                    el.scrollIntoView({ behavior: 'smooth' });
-                  } catch {
-                    alert('Failed to generate resume content.');
-                  }
-                }}
-              >Generate</Button>
-              <Button
-                variant="secondary"
-                client:only="react"
-                onClick={() => {
-                  const el = document.getElementById('re_output');
-                  if (!el) return;
-                  const range = document.createRange();
-                  range.selectNode(el);
-                  const sel = window.getSelection();
-                  sel?.removeAllRanges();
-                  sel?.addRange(range);
-                  document.execCommand('copy');
-                  sel?.removeAllRanges();
-                  alert('Copied resume content to clipboard.');
-                }}
-              >Copy</Button>
+              <Button disabled>Generate Resume</Button>
+              <Button variant="secondary" disabled>Copy</Button>
             </div>
             <div id="re_output" class="prose mt-2 max-w-none rounded border p-3 text-sm"></div>
           </section>

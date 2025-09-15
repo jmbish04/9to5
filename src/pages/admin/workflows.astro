@@ -45,12 +45,11 @@ const taskNames = new Map(tasks.map(task => [task.id, task.name]));
                 </div>
               </div>
               <div class="flex gap-2">
-                <Badge 
-                  client:only="react"
-                  variant={workflow.enabled ? 'default' : 'secondary'}
+                <span 
+                  class={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${workflow.enabled ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-700'}`}
                 >
                   {workflow.enabled ? 'Enabled' : 'Disabled'}
-                </Badge>
+                </span>
                 <Button variant="outline" size="sm" disabled>Execute</Button>
               </div>
             </div>
