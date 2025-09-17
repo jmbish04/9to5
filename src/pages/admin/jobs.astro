@@ -115,82 +115,48 @@ const currentPage = Math.floor(offset / limit) + 1;
           </th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-gray-200 bg-white">
-        {loadError ? (
-          <tr>
-            <td colspan="7" class="px-6 py-12 text-center text-red-600">
-              <div class="text-sm">Failed to load jobs. Please try again.</div>
-            </td>
-          </tr>
-        ) : jobs.length === 0 ? (
-          <tr>
-            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-              <div class="text-sm">
-                {status || source ? 'No jobs found matching your filters.' : 'No jobs available.'}
-              </div>
-              {(status || source) && (
-                <a href="/admin/jobs" class="mt-2 inline-block text-sm text-blue-600 hover:text-blue-500">
-                  Clear all filters
-                </a>
-              )}
-            </td>
-          </tr>
-        ) : (
-          jobs.map((job) => (
-            <tr key={job.id} class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
-                  <a
-                    href={"/admin/jobs/" + encodeURIComponent(job.id)}
-                    class="text-blue-600 hover:text-blue-900 hover:underline"
-                  >
-                    {job.title || 'Untitled Job'}
-                  </a>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {job.company || '—'}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                {job.location || '—'}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                {job.employment_type || '—'}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class={"inline-flex px-2 py-1 text-xs font-semibold rounded-full " + (
-                  job.status === 'open'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                )}>
-                  {job.status || 'Unknown'}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                {job.source ? (
-                  <span class={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    job.source === 'SCRAPED'
-                      ? 'bg-blue-100 text-blue-800'
-                      : job.source === 'EMAIL'
-                      ? 'bg-indigo-100 text-indigo-800'
-                      : job.source === 'MANUAL'
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`} aria-label={`Source: ${job.source}`}>
-                    {job.source}
-                  </span>
-                ) : (
-                  <span class="text-gray-400">—</span>
-                )}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <InterestSignals client:load jobId={job.id} />
-              </td>
-            </tr>
-          ))}
-        )
-      }
-      </tbody>
+<tbody class="divide-y divide-gray-200 bg-white">
+  {loadError ? (
+    <tr>
+      <td colspan="7" class="px-6 py-12 text-center text-red-600">
+        <div class="text-sm">Failed to load jobs. Please try again.</div>
+      </td>
+    </tr>
+  ) : jobs.length === 0 ? (
+    <tr>
+      <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+        <div class="text-sm">
+          {status || source ? 'No jobs found matching your filters.' : 'No jobs available.'}
+        </div>
+      </td>
+    </tr>
+  ) : (
+    <>
+      {jobs.map((job) => (
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+            {job.title}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {job.location ?? '—'}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {job.employment_type ?? '—'}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            {job.status ?? '—'}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            {job.source ?? '—'}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            {job.interest ?? '—'}
+          </td>
+        </tr>
+      ))}
+    </>
+  )}
+</tbody>
     </table>
   </div>
 </AdminLayout>

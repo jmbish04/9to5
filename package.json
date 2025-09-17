@@ -51,17 +51,18 @@
   "devDependencies": {
     "@types/qs": "^6.9.11",
     "openapi-typescript": "^6.7.0",
-    "wrangler": "4.37.0"
+    "wrangler": "4.37.0",
+    "puppeteer": "^23.0.0"
   },
   "scripts": {
     "astro": "astro",
     "build": "astro build && cp src/workflows/wrapper.js dist/index.js",
     "cf-typegen": "wrangler types",
     "check": "pnpm run build && pnpm run wrangler:wrapper && wrangler deploy --dry-run",
-    "db:migrate": "wrangler d1 migrations apply DB --local",
+    "db:migrate": "mkdir -p .d1 && cat migrations/*.sql | sqlite3 .d1/DB.sqlite",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "deploy": "pnpm run wrangler:wrapper && wrangler deploy",
-    "dev": "pnpm run db:migrate && pnpm run build && pnpm run wrangler:wrapper && wrangler dev --port 4321",
+    "deploy": "pnpm run build && pnpm run wrangler:wrapper && wrangler deploy",
+    "dev": "pnpm run db:migrate && pnpm run build && pnpm run wrangler:wrapper && wrangler dev --persist-to ./.d1 --port 4321",
     "predeploy": "pnpm run db:migrate:remote",
     "preview": "pnpm run build && pnpm run wrangler:wrapper && wrangler dev",
     "wrangler:wrapper": "cp src/workflows/wrapper.js dist/index.js",
@@ -71,7 +72,9 @@
     "migrate:local": "wrangler d1 migrations apply JOB_SCRAPER_DB --local",
     "migrate:remote": "wrangler d1 migrations apply JOB_SCRAPER_DB --remote",
     "dev:smoke": "node scripts/dev-smoke.mjs",
-    "test": "node scripts/dev-smoke.mjs",
+    "test": "node scripts/e2e-test.mjs",
+    "test:smoke": "node scripts/dev-smoke.mjs",
+    "test:e2e": "node scripts/e2e-test.mjs",
     "test:ai": "node scripts/test-ai-agents.mjs"
   },
   "pnpm": {

@@ -34,5 +34,8 @@ pnpm-debug.log*
 # Temporary files
 sample-data.sql
 *.tmp
+  
+# D1 local persistence
+.d1/
 
 

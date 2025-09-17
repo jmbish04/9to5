@@ -56,7 +56,11 @@ export function validateApiTokenResponse(
     token = xApiTokenHeader.trim();
   }
 
-  const timingSafeEqual = (a: string, b: string): boolean => {
+  // Skip authentication if no API_TOKEN is configured (e.g., local dev)
+  if (!apiToken) {
+    return undefined;
+  }
+  const timingSafeEqual = (a: string, b: string): boolean => {
     if (a.length !== b.length) {
       return false;
     }

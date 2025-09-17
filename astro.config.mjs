@@ -15,6 +15,7 @@ export default defineConfig({
         path: "./.cache/wrangler/v3",
       },
     },
+    imageService: 'compile',
   }),
   integrations: [react(), tailwind({ applyBaseStyles: true })],
   output: "server",

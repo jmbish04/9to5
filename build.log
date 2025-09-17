@@ -1,0 +1,28 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.3.0","pnpm":"9.0.0"})
+
+> 9to5@ build /Volumes/Projects/workers/9to5
+> astro build && cp src/workflows/wrapper.js dist/index.js
+
+09:38:00 [@astrojs/cloudflare] Enabling sessions with Cloudflare KV for production with the "SESSION" KV binding.
+09:38:00 [@astrojs/cloudflare] If you see the error "Invalid binding `SESSION`" in your build output, you need to add the binding to your wrangler config file.
+09:38:01 [content] Syncing content
+09:38:01 [content] Synced content
+09:38:01 [types] Generated 48ms
+09:38:01 [build] output: "server"
+09:38:01 [build] mode: "server"
+09:38:01 [build] directory: /Volumes/Projects/workers/9to5/dist/
+09:38:01 [build] adapter: @astrojs/cloudflare
+09:38:01 [build] Collecting build info...
+09:38:01 [build] ✓ Completed in 241ms.
+09:38:01 [build] Building server entrypoints...
+09:38:03 [ERROR] [vite] ✗ Build failed in 1.91s
+Syntax error "`"
+  Location:
+    /Volumes/Projects/workers/9to5/src/pages/admin/applicant.astro:155:27
+  Stack trace:
+    at failureErrorWithLog (/Volumes/Projects/workers/9to5/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:1467:15)
+    at responseCallbacks.<computed> (/Volumes/Projects/workers/9to5/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:603:9)
+    at Socket.readFromStdout (/Volumes/Projects/workers/9to5/node_modules/.pnpm/esbuild@0.25.9/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:domain:489:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+ ELIFECYCLE  Command failed with exit code 1.
